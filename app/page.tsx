@@ -10,7 +10,7 @@ export default function HomePage() {
   useEffect(() => {
     const token = localStorage.getItem('supabase_token')
     if (token) {
-      fetch('http://127.0.0.1:8000/users/me', {
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -43,6 +43,7 @@ export default function HomePage() {
           <button onClick={() => router.push('/register')}>註冊</button>
         </div>
       )}
+      <button onClick={() => router.push('/matches')} style={{ marginTop: '1rem' }}>查看比賽</button>
     </main>
   )
 }
