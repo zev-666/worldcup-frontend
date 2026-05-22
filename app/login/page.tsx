@@ -1,54 +1,50 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { supabase } from '../../lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setError("");
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    })
+    });
+
     if (error) {
-      setError(error.message)
+      setError(error.message);
     } else {
-      localStorage.setItem('supabase_token', data.session.access_token)
-      router.push('/')
+      window.location.href = "/";
     }
-  }
+  };
 
   return (
-    <main style={{ padding: '2rem' }}>
+    <div>
       <h1>登入</h1>
       <form onSubmit={handleLogin}>
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <input
-            type="password"
-            placeholder="密碼"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          placeholder="密碼"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <button type="submit">登入</button>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
       </form>
-    </main>
-  )
+      {error && <p style={{ color: "red" }}>{error}</p>}
+    </div>
+  );
 }
