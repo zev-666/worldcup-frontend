@@ -8,8 +8,10 @@ export default function MatchesPage() {
   const [tier, setTier] = useState<string>("");
   const [matches, setMatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [oddsMap, setOddsMap] = useState<Record<string, any>>({});
+  const [loadingOdds, setLoadingOdds] = useState<Record<string, boolean>>({});
 
-  // 1. 客戶端啟動時，先確認目前的登入狀態
+  // 1. 確認登入狀態
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -32,7 +34,7 @@ export default function MatchesPage() {
     checkUser();
   }, []);
 
-  // 2. 載入比賽資料（這裡直接用你原本的 fetch）
+  // 2. 載入比賽列表
   useEffect(() => {
     const loadMatches = async () => {
       try {
@@ -50,10 +52,15 @@ export default function MatchesPage() {
     loadMatches();
   }, []);
 
-  // 3. 載入詳細賠率（Pro 會員專屬）
+  // 3. 載入詳細賠率（Pro 專屬）
   const loadDetailedOdds = async (matchId: string) => {
+    setLoadingOdds(prev => ({ ...prev, [matchId]: true }));
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return alert("請先登入");
+    if (!session) {
+      alert("請先登入");
+      setLoadingOdds(prev => ({ ...prev, [matchId]: false }));
+      return;
+    }
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/odds/detailed/${matchId}`,
@@ -61,19 +68,21 @@ export default function MatchesPage() {
       );
       if (res.ok) {
         const odds = await res.json();
-        alert(JSON.stringify(odds, null, 2)); // 這裡你可以改成自己喜歡的 UI
+        setOddsMap(prev => ({ ...prev, [matchId]: odds }));
       } else {
         alert("無權限或載入失敗");
       }
     } catch (err) {
       console.error("載入詳細賠率失敗", err);
+    } finally {
+      setLoadingOdds(prev => ({ ...prev, [matchId]: false }));
     }
   };
 
   if (loading) return <p>載入中...</p>;
 
   return (
-    <div>
+    <div style={{ padding: "1rem" }}>
       <h1>比賽列表</h1>
       {!user ? (
         <p>
@@ -84,16 +93,41 @@ export default function MatchesPage() {
       )}
 
       {matches.map((match) => (
-        <div key={match.id} style={{ marginBottom: "1rem" }}>
+        <div key={match.id} style={{ marginBottom: "1.5rem", borderBottom: "1px solid #ccc", paddingBottom: "1rem" }}>
           <strong>{match.home_team} vs {match.away_team}</strong>
+          <br />
           {!user ? (
-            <p>🔒 登入後解鎖詳細賠率</p>
+            <span>🔒 登入後解鎖詳細賠率</span>
           ) : tier !== "pro" ? (
-            <p>🔒 升級 Pro 解鎖詳細賠率</p>
+            <span>🔒 升級 Pro 解鎖詳細賠率</span>
           ) : (
-            <button onClick={() => loadDetailedOdds(match.id)}>
-              載入詳細賠率
+            <button
+              onClick={() => loadDetailedOdds(match.id)}
+              disabled={loadingOdds[match.id]}
+            >
+              {loadingOdds[match.id] ? "載入中..." : "載入詳細賠率"}
             </button>
+          )}
+
+          {/* 顯示詳細賠率內容 */}
+          {oddsMap[match.id] && (
+            <div style={{ marginTop: "0.5rem", background: "#f9f9f9", padding: "0.5rem", borderRadius: "4px" }}>
+              {oddsMap[match.id].asian_handicap && (
+                <p>
+                  🏆 讓球盤：主隊 {oddsMap[match.id].asian_handicap.home > 0 ? "+" : ""}{oddsMap[match.id].asian_handicap.home} ({oddsMap[match.id].asian_handicap.home_odds}) vs 客隊 {oddsMap[match.id].asian_handicap.away > 0 ? "+" : ""}{oddsMap[match.id].asian_handicap.away} ({oddsMap[match.id].asian_handicap.away_odds})
+                </p>
+              )}
+              {oddsMap[match.id].over_under && (
+                <p>
+                  ⚽ 大小球：{oddsMap[match.id].over_under.line} 大 {oddsMap[match.id].over_under.over_odds} / 小 {oddsMap[match.id].over_under.under_odds}
+                </p>
+              )}
+              {oddsMap[match.id].btts && (
+                <p>
+                  🥅 兩隊是否進球 (BTTS)：是 {oddsMap[match.id].btts.yes_odds} / 否 {oddsMap[match.id].btts.no_odds}
+                </p>
+              )}
+            </div>
           )}
         </div>
       ))}
