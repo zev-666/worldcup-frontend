@@ -40,7 +40,6 @@ export default function MatchesPage() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 每張卡片的展開狀態、預測資料、詳細賠率
   const [expandedPred, setExpandedPred] = useState<Record<string, boolean>>({});
   const [predictions, setPredictions] = useState<Record<string, Prediction[]>>({});
   const [detailedOdds, setDetailedOdds] = useState<Record<string, DetailedOdds>>({});
@@ -52,7 +51,6 @@ export default function MatchesPage() {
 
     const fetchData = async () => {
       try {
-        // 取得會員等級
         if (stored) {
           const meRes = await fetch(`${API_URL}/users/me`, {
             headers: { Authorization: `Bearer ${stored}` },
@@ -63,7 +61,6 @@ export default function MatchesPage() {
           }
         }
 
-        // 取得比賽列表
         const matchRes = await fetch(`${API_URL}/matches/`, {
           headers: stored ? { Authorization: `Bearer ${stored}` } : {},
         });
@@ -81,7 +78,6 @@ export default function MatchesPage() {
   }, []);
 
   const togglePrediction = async (matchId: string) => {
-    // 如果已展開，收起
     if (expandedPred[matchId]) {
       setExpandedPred((prev) => ({ ...prev, [matchId]: false }));
       return;
@@ -89,23 +85,19 @@ export default function MatchesPage() {
 
     setExpandedPred((prev) => ({ ...prev, [matchId]: true }));
 
-    // 已有資料就不重複抓
     if (predictions[matchId]) return;
 
     setPredLoading((prev) => ({ ...prev, [matchId]: true }));
     try {
-      // 抓預測（所有人）
       const predRes = await fetch(`${API_URL}/predict/${matchId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (predRes.ok) {
         const data = await predRes.json();
-        // 後端回傳格式可能是 array 或 object，統一轉 array
         const arr = Array.isArray(data) ? data : [data];
         setPredictions((prev) => ({ ...prev, [matchId]: arr }));
       }
 
-      // Pro 會員額外抓詳細賠率
       if (tier === "pro" && token) {
         const oddsRes = await fetch(`${API_URL}/odds/detailed/${matchId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -124,44 +116,51 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+      <div className="flex justify-center items-center h-64 text-gray-400">
         載入中...
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: "720px", margin: "0 auto", padding: "24px 16px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "22px", fontWeight: 700 }}>⚽ World Cup 2026 賽事</h1>
-        <div style={{ display: "flex", gap: "8px" }}>
-          <span style={{
-            fontSize: "12px", padding: "4px 10px", borderRadius: "99px",
-            background: tier === "pro" ? "#1a6b3c" : "#e5e2da",
-            color: tier === "pro" ? "#fff" : "#6b6860", fontWeight: 600,
-          }}>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* 頁首 */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-800">⚽ World Cup 2026 賽事</h1>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-xs px-3 py-1.5 rounded-full font-semibold ${
+              tier === "pro"
+                ? "bg-emerald-700 text-white"
+                : "bg-stone-200 text-stone-600"
+            }`}
+          >
             {tier === "pro" ? "⭐ Pro" : "免費會員"}
           </span>
-          <a href="/" style={{ fontSize: "13px", color: "#1a5490" }}>← 首頁</a>
+          <a href="/" className="text-sm text-blue-600 hover:underline">
+            ← 首頁
+          </a>
         </div>
       </div>
 
       {matches.length === 0 && (
-        <p style={{ color: "#888", textAlign: "center" }}>目前沒有賽事資料。</p>
+        <p className="text-center text-gray-400">目前沒有賽事資料。</p>
       )}
 
-      {matches.map((match) => (
-        <MatchCard
-          key={match.id}
-          match={match}
-          tier={tier}
-          isExpanded={!!expandedPred[match.id]}
-          isLoading={!!predLoading[match.id]}
-          predictions={predictions[match.id] || []}
-          detailedOdds={detailedOdds[match.id] || null}
-          onToggle={() => togglePrediction(match.id)}
-        />
-      ))}
+      <div className="space-y-4">
+        {matches.map((match) => (
+          <MatchCard
+            key={match.id}
+            match={match}
+            tier={tier}
+            isExpanded={!!expandedPred[match.id]}
+            isLoading={!!predLoading[match.id]}
+            predictions={predictions[match.id] || []}
+            detailedOdds={detailedOdds[match.id] || null}
+            onToggle={() => togglePrediction(match.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -169,7 +168,13 @@ export default function MatchesPage() {
 // ─── 比賽卡片元件 ───────────────────────────────────────
 
 function MatchCard({
-  match, tier, isExpanded, isLoading, predictions, detailedOdds, onToggle,
+  match,
+  tier,
+  isExpanded,
+  isLoading,
+  predictions,
+  detailedOdds,
+  onToggle,
 }: {
   match: Match;
   tier: string;
@@ -183,36 +188,33 @@ function MatchCard({
   const isFinished = match.status === "finished";
 
   return (
-    <div style={{
-      background: "#fff", border: "1px solid #e5e2da", borderRadius: "12px",
-      marginBottom: "16px", overflow: "hidden",
-    }}>
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       {/* 卡片頭部 */}
-      <div style={{ padding: "16px 20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>
+      <div className="p-5">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="text-base font-bold text-gray-800 mb-1">
               {match.home_team}
-              <span style={{ color: "#888", margin: "0 8px", fontSize: "14px" }}>vs</span>
+              <span className="text-gray-400 mx-2 text-sm">vs</span>
               {match.away_team}
             </div>
             {isFinished && match.home_score !== null && (
-              <div style={{ fontSize: "20px", fontWeight: 700, color: "#1a6b3c", marginBottom: "4px" }}>
+              <div className="text-xl font-bold text-emerald-700 mb-1">
                 {match.home_score} – {match.away_score}
               </div>
             )}
-            <div style={{ fontSize: "12px", color: "#888" }}>
+            <div className="text-xs text-gray-500">
               {kickoff.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}
-              {match.stage && <span style={{ marginLeft: "8px" }}>· {match.stage}</span>}
+              {match.stage && <span className="ml-2">· {match.stage}</span>}
             </div>
           </div>
           <button
             onClick={onToggle}
-            style={{
-              fontSize: "13px", padding: "6px 14px", borderRadius: "8px",
-              border: "1px solid #e5e2da", background: isExpanded ? "#f0ede6" : "#fff",
-              cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap",
-            }}
+            className={`text-sm px-4 py-2 rounded-lg border font-medium transition-colors ${
+              isExpanded
+                ? "bg-gray-100 border-gray-300 text-gray-700"
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
           >
             {isLoading ? "載入中…" : isExpanded ? "▲ 收起" : "📊 查看預測"}
           </button>
@@ -221,11 +223,11 @@ function MatchCard({
 
       {/* 展開預測區塊 */}
       {isExpanded && (
-        <div style={{ borderTop: "1px solid #f0ede6", padding: "16px 20px", background: "#fafaf8" }}>
+        <div className="border-t border-gray-100 p-5 bg-gray-50/50">
           {isLoading ? (
-            <p style={{ color: "#888", fontSize: "14px" }}>分析中，請稍候…</p>
+            <p className="text-sm text-gray-400">分析中，請稍候…</p>
           ) : predictions.length === 0 ? (
-            <p style={{ color: "#888", fontSize: "14px" }}>預測資料暫無。</p>
+            <p className="text-sm text-gray-400">預測資料暫無。</p>
           ) : (
             <>
               <PredictionBlock predictions={predictions} tier={tier} />
@@ -233,14 +235,11 @@ function MatchCard({
                 <DetailedOddsBlock odds={detailedOdds} />
               )}
               {tier !== "pro" && (
-                <div style={{
-                  marginTop: "12px", padding: "10px 14px", borderRadius: "8px",
-                  background: "#fdf8e8", border: "1px solid #f0d060", fontSize: "13px", color: "#7a560a",
-                }}>
+                <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-800">
                   🔒 <strong>Pro 會員</strong>可查看亞洲讓球、大小球市場賠率與信心分析
                 </div>
               )}
-              <p style={{ marginTop: "12px", fontSize: "11px", color: "#aaa", lineHeight: 1.5 }}>
+              <p className="mt-4 text-xs text-gray-400 leading-relaxed">
                 ⚠️ 以上數據為模型機率分析，不構成任何投注建議，請理性評估風險。
               </p>
             </>
@@ -259,37 +258,36 @@ function PredictionBlock({ predictions, tier }: { predictions: Prediction[]; tie
 
   return (
     <div>
-      <div style={{ fontSize: "13px", fontWeight: 700, color: "#555", marginBottom: "10px" }}>
+      <div className="text-sm font-semibold text-gray-600 mb-3">
         📈 模型預測（機率）
       </div>
 
       {pred1x2 && !pred1x2.error && (
-        <div style={{ marginBottom: "12px" }}>
-          <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>勝平負（1X2）</div>
-          <div style={{ display: "flex", gap: "8px" }}>
+        <div className="mb-4">
+          <div className="text-xs text-gray-400 mb-2">勝平負（1X2）</div>
+          <div className="flex gap-3">
             <ProbBox label="主勝" prob={pred1x2.home_prob} />
             <ProbBox label="和局" prob={pred1x2.draw_prob} />
             <ProbBox label="客勝" prob={pred1x2.away_prob} />
           </div>
           {pred1x2.model_warning && (
-            <div style={{ marginTop: "6px", fontSize: "12px", color: "#b07d11" }}>
+            <div className="mt-2 text-xs text-amber-600">
               ⚠ {pred1x2.model_warning}
             </div>
           )}
         </div>
       )}
 
-      {/* Pro 才看大小球 */}
       {tier === "pro" && predOU && !predOU.error && (
-        <div style={{ marginBottom: "8px" }}>
-          <div style={{ fontSize: "12px", color: "#888", marginBottom: "6px" }}>
+        <div className="mb-3">
+          <div className="text-xs text-gray-400 mb-2">
             大小球（OU {predOU.over_prob !== undefined ? "2.5" : ""}）
           </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div className="flex gap-3 items-center">
             <ProbBox label="大球" prob={predOU.over_prob} />
             <ProbBox label="小球" prob={predOU.under_prob} />
             {predOU.expected_goals !== undefined && (
-              <span style={{ fontSize: "12px", color: "#888" }}>
+              <span className="text-xs text-gray-500">
                 預測總進球：{predOU.expected_goals}
               </span>
             )}
@@ -307,11 +305,8 @@ function PredictionBlock({ predictions, tier }: { predictions: Prediction[]; tie
 
 function DetailedOddsBlock({ odds }: { odds: DetailedOdds }) {
   return (
-    <div style={{
-      marginTop: "14px", padding: "12px 14px", borderRadius: "8px",
-      background: "#e8f5ee", border: "1px solid #b8dfc8",
-    }}>
-      <div style={{ fontSize: "12px", fontWeight: 700, color: "#1a6b3c", marginBottom: "8px" }}>
+    <div className="mt-4 p-4 rounded-lg bg-emerald-50 border border-emerald-200">
+      <div className="text-xs font-bold text-emerald-700 mb-3">
         ⭐ Pro 專屬：市場賠率
       </div>
       {odds.asian_handicap && (
@@ -329,11 +324,11 @@ function DetailedOddsBlock({ odds }: { odds: DetailedOdds }) {
 
 function OddsRow({ label, data }: { label: string; data: Record<string, number> }) {
   return (
-    <div style={{ marginBottom: "6px", fontSize: "13px" }}>
-      <span style={{ color: "#555", minWidth: "80px", display: "inline-block" }}>{label}：</span>
+    <div className="mb-2 text-sm">
+      <span className="text-gray-600 font-medium w-20 inline-block">{label}：</span>
       {Object.entries(data).map(([k, v]) => (
-        <span key={k} style={{ marginRight: "12px" }}>
-          <span style={{ color: "#888" }}>{k} </span>
+        <span key={k} className="mr-3">
+          <span className="text-gray-400">{k} </span>
           <strong>{typeof v === "number" ? v.toFixed(2) : v}</strong>
         </span>
       ))}
@@ -348,13 +343,19 @@ function ProbBox({ label, prob }: { label: string; prob?: number }) {
   const pct = Math.round(prob * 100);
   const isHigh = pct >= 45;
   return (
-    <div style={{
-      flex: 1, textAlign: "center", padding: "10px 8px", borderRadius: "8px",
-      background: isHigh ? "#e8f5ee" : "#f0ede6",
-      border: `1px solid ${isHigh ? "#b8dfc8" : "#e5e2da"}`,
-    }}>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "2px" }}>{label}</div>
-      <div style={{ fontSize: "20px", fontWeight: 700, color: isHigh ? "#1a6b3c" : "#333" }}>
+    <div
+      className={`flex-1 text-center py-3 px-2 rounded-lg ${
+        isHigh
+          ? "bg-emerald-50 border-emerald-200"
+          : "bg-gray-100 border-gray-200"
+      } border`}
+    >
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div
+        className={`text-xl font-bold ${
+          isHigh ? "text-emerald-700" : "text-gray-800"
+        }`}
+      >
         {pct}%
       </div>
     </div>
@@ -363,14 +364,16 @@ function ProbBox({ label, prob }: { label: string; prob?: number }) {
 
 function ConfidenceBar({ value }: { value: number }) {
   const pct = Math.round(value * 100);
-  const color = pct >= 60 ? "#1a6b3c" : pct >= 40 ? "#b07d11" : "#c0392b";
+  const color =
+    pct >= 60 ? "bg-emerald-700" : pct >= 40 ? "bg-amber-500" : "bg-red-600";
   return (
-    <div style={{ marginTop: "8px" }}>
-      <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>
-        模型信心度：{pct}%
-      </div>
-      <div style={{ background: "#e5e2da", borderRadius: "99px", height: "6px", overflow: "hidden" }}>
-        <div style={{ width: `${pct}%`, background: color, height: "100%", borderRadius: "99px" }} />
+    <div className="mt-3">
+      <div className="text-xs text-gray-500 mb-1">模型信心度：{pct}%</div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className={`h-2 rounded-full ${color}`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
