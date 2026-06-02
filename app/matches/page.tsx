@@ -24,7 +24,7 @@ const TEAM_ZH: Record<string, string> = {
   "Ukraine": "烏克蘭", "Turkey": "土耳其", "Greece": "希臘",
   "Romania": "羅馬尼亞", "Algeria": "阿爾及利亞", "Egypt": "埃及",
   "Tunisia": "突尼西亞", "Mali": "馬利", "Ivory Coast": "象牙海岸",
-  "Mexico": "墨西哥", "Costa Rica": "哥斯大黎加", "Panama": "巴拿馬",
+  "Costa Rica": "哥斯大黎加", "Panama": "巴拿馬",
   "Honduras": "宏都拉斯", "Jamaica": "牙買加", "Trinidad and Tobago": "千里達",
   "New Zealand": "紐西蘭", "Bosnia & Herzegovina": "波士尼亞",
   "Bosnia and Herzegovina": "波士尼亞", "North Macedonia": "北馬其頓",
