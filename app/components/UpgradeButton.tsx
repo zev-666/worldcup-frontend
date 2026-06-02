@@ -21,7 +21,20 @@ export default function UpgradeButton({ userEmail }: UpgradeButtonProps) {
   return (
     <button
       onClick={handleUpgrade}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-lg transition-colors duration-200"
+      style={{
+        background: "#00C27A",
+        color: "#050A07",
+        border: "none",
+        borderRadius: "7px",
+        padding: "9px 20px",
+        fontSize: "13px",
+        fontWeight: 700,
+        cursor: "pointer",
+        letterSpacing: ".02em",
+        transition: "opacity .15s",
+      }}
+      onMouseOver={(e) => (e.currentTarget.style.opacity = ".85")}
+      onMouseOut={(e) => (e.currentTarget.style.opacity = "1")}
     >
       ⚡ 升級 Pro 解鎖完整功能
     </button>
