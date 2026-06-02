@@ -127,12 +127,18 @@ export default function MatchesPage() {
       const r = await fetch(`${API_URL}/predict/${matchId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (r.ok) setPredictions((p) => ({ ...p, [matchId]: await r.json() }));
+      if (r.ok) {
+        const predData = await r.json();
+        setPredictions((p) => ({ ...p, [matchId]: predData }));
+      }
       if (tier === "pro" && token) {
         const o = await fetch(`${API_URL}/odds/detailed/${matchId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (o.ok) setDetailedOdds((p) => ({ ...p, [matchId]: await o.json() }));
+        if (o.ok) {
+          const oddsData = await o.json();
+          setDetailedOdds((p) => ({ ...p, [matchId]: oddsData }));
+        }
       }
     } catch (e) {
       console.error(e);
