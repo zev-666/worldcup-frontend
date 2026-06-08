@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import MemberGate from "@/components/MemberGate";
+import OddsDetail from "../components/OddsDetail";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -309,13 +310,20 @@ function MatchCard({ match, tier, userEmail, isExpanded, isLoading, prediction, 
                       <ProbBox label="有隊未進" prob={prediction.prediction.btts_no} color="blue" />
                     </div>
                   </div>
-                  {detailedOdds && (
-                    <div className="wc-detailed">
-                      <div className="wc-detailed-title">⚡ 詳細賠率</div>
-                      {detailedOdds.asian_handicap && <OddsRow label="讓球" data={detailedOdds.asian_handicap} />}
-                      {detailedOdds.over_under && <OddsRow label="大小球" data={detailedOdds.over_under} />}
-                      {detailedOdds.btts && <OddsRow label="雙隊得分" data={detailedOdds.btts} />}
-                    </div>
+                  {detailedOdds && detailedOdds.asian_handicap && (
+                    <OddsDetail
+                      homeTeam={match.home_team}
+                      awayTeam={match.away_team}
+                      odds={{
+                        home_odds: Object.values(detailedOdds.asian_handicap)[0] ?? 1.90,
+                        away_odds: Object.values(detailedOdds.asian_handicap)[1] ?? 1.90,
+                        line: 0.5,
+                        over_odds: detailedOdds.over_under?.["Over 2.5"] ?? detailedOdds.over_under?.["over"] ?? 1.90,
+                        under_odds: detailedOdds.over_under?.["Under 2.5"] ?? detailedOdds.over_under?.["under"] ?? 1.90,
+                        yes_odds: detailedOdds.btts?.["Yes"] ?? detailedOdds.btts?.["yes"] ?? 1.90,
+                        no_odds: detailedOdds.btts?.["No"] ?? detailedOdds.btts?.["no"] ?? 1.90,
+                      }}
+                    />
                   )}
                 </>
               ) : (
