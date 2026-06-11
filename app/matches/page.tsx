@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import MemberGate from "@/components/MemberGate";
 import OddsDetail from "../components/OddsDetail";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const GUMROAD_URL = "https://bestsaler666.gumroad.com/l/fzljib";
 
 const TEAM_ZH: Record<string, string> = {
   "Canada": "加拿大", "Mexico": "墨西哥", "USA": "美國",
@@ -11,7 +11,7 @@ const TEAM_ZH: Record<string, string> = {
   "France": "法國", "Germany": "德國", "Spain": "西班牙",
   "England": "英格蘭", "Portugal": "葡萄牙", "Netherlands": "荷蘭",
   "Belgium": "比利時", "Italy": "義大利", "Croatia": "克羅埃西亞",
-  "Morocco": "摩洛哥", "Senegal": "塞內加爾", "Ghana": "加納",
+  "Morocco": "摩洛哥", "Senegal": "塞內加爾", "Ghana": "迦納",
   "Cameroon": "喀麥隆", "Nigeria": "奈及利亞", "South Korea": "南韓",
   "Japan": "日本", "Australia": "澳洲", "Iran": "伊朗",
   "Saudi Arabia": "沙烏地阿拉伯", "Qatar": "卡達", "Ecuador": "厄瓜多",
@@ -76,50 +76,51 @@ interface DetailedOdds {
   btts: Record<string, number>;
 }
 
-// ── Language strings ──────────────────────────────────────────
 type Lang = "zh" | "en";
 const T = {
   zh: {
-    loading: "載入中...", loadPred: "分析中...", noPred: "無預測資料",
+    loading: "載入中...", loadPred: "分析中...", noPred: "暫無預測資料",
     home: "首頁", stage: "小組賽", ko: "淘汰賽",
     viewPred: "查看 AI 分析", collapse: "收起",
-    eloPfx: "ELO —", homeLabel: "主場勝", draw: "和局", away: "客場勝",
-    confLabel: "信心指數", probLabel: "1X2 機率",
-    ouLabel: (eg: number) => `大小球 O/U 2.5 — 預期進球 ${eg}`,
+    eloPfx: "ELO 分數", homeLabel: "主隊勝", draw: "平局", away: "客隊勝",
+    confLabel: "模型信心", probLabel: "1X2 勝負機率",
+    ouLabel: (eg: number) => `大小球 O/U 2.5（預期進球 ${eg}）`,
     bttsLabel: "雙方進球 (BTTS)",
-    bttsYes: "都進球", bttsNo: "未都進",
-    lockLabel: "升級 Pro 解鎖：讓球 / 大小球 / BTTS 詳細賠率",
-    disclaimer: "以上為機率分析，不構成投注建議",
-    footer: "本平台預測結果為機率數值，不構成任何投注建議。請理性評估風險。",
+    bttsYes: "雙進球", bttsNo: "未雙進",
+    lockLabel: "升級 Pro 解鎖：亞盤 / 大小球 / BTTS 完整賠率分析",
+    disclaimer: "以上數據僅供統計參考，不構成投注建議",
+    footer: "所有預測均為機率估算，不構成投注建議，請理性參考數據。",
     noMatches: "暫無賽事資料",
-    headerTag: "AI 驅動賽事分析平台",
-    headerTitle: "比賽預測",
-    headerSub: (n: number) => `共 ${n} 場賽事 · Poisson 模型 · 真實 ELO`,
+    headerTag: "AI 賽事數據分析平台",
+    headerTitle: "賽程預測",
+    headerSub: (n: number) => `共 ${n} 場賽事 · Poisson 模型 · 即時 ELO`,
     tiScore: "台北時間",
-    proLabel: "⚡ PRO",
+    proLabel: "⚡PRO",
     freeLabel: "FREE",
     navMatches: "賽事",
+    upgradeBtn: "⚡ 升級 Pro — $6.99 USD",
   },
   en: {
     loading: "Loading...", loadPred: "Analysing...", noPred: "No prediction data",
     home: "Home", stage: "Group Stage", ko: "Knockout",
     viewPred: "View AI Analysis", collapse: "Collapse",
-    eloPfx: "ELO —", homeLabel: "Home", draw: "Draw", away: "Away",
+    eloPfx: "ELO Rating", homeLabel: "Home", draw: "Draw", away: "Away",
     confLabel: "Confidence", probLabel: "1X2 Probability",
-    ouLabel: (eg: number) => `Over/Under 2.5 — Expected goals ${eg}`,
+    ouLabel: (eg: number) => `Over/Under 2.5 · Expected goals ${eg}`,
     bttsLabel: "Both Teams to Score (BTTS)",
     bttsYes: "Yes", bttsNo: "No",
     lockLabel: "Upgrade Pro: Asian Handicap / Over-Under / BTTS odds",
-    disclaimer: "Statistical analysis only — not betting advice",
+    disclaimer: "Statistical analysis only · not betting advice",
     footer: "All predictions are probability estimates only and do not constitute betting advice.",
     noMatches: "No fixtures found",
     headerTag: "AI-Powered Match Analytics",
     headerTitle: "Predictions",
     headerSub: (n: number) => `${n} fixtures · Poisson model · Real ELO`,
     tiScore: "Taipei time",
-    proLabel: "⚡ PRO",
+    proLabel: "⚡PRO",
     freeLabel: "FREE",
     navMatches: "Fixtures",
+    upgradeBtn: "⚡ Upgrade Pro — $6.99 USD",
   },
 };
 
@@ -195,6 +196,13 @@ export default function MatchesPage() {
     }
   };
 
+  const handleUpgrade = () => {
+    const url = userEmail
+      ? `${GUMROAD_URL}?email=${encodeURIComponent(userEmail)}`
+      : GUMROAD_URL;
+    window.open(url, "_blank");
+  };
+
   const t = T[lang];
 
   if (loading) return (
@@ -213,7 +221,6 @@ export default function MatchesPage() {
         <nav className="wc-nav">
           <div className="wc-logo">WC<span>2026</span></div>
           <div className="wc-nav-right">
-            {/* Language toggle */}
             <div className="wc-ltog">
               <button className={`wc-lb${lang === "en" ? " on" : ""}`} onClick={() => setLang("en")}>EN</button>
               <button className={`wc-lb${lang === "zh" ? " on" : ""}`} onClick={() => setLang("zh")}>中文</button>
@@ -221,6 +228,11 @@ export default function MatchesPage() {
             <span className={`wc-tier-badge${tier === "pro" ? " pro" : ""}`}>
               {tier === "pro" ? t.proLabel : t.freeLabel}
             </span>
+            {tier !== "pro" && (
+              <button className="wc-nav-upgrade" onClick={handleUpgrade}>
+                ⚡ 升級 Pro
+              </button>
+            )}
             <a href="/" className="wc-nav-link">{t.home}</a>
           </div>
         </nav>
@@ -237,11 +249,11 @@ export default function MatchesPage() {
 
         {/* TRUST BAR */}
         <div className="wc-trust">
-          <span className="wc-trust-item">⚡ Poisson {lang === "zh" ? "迴歸模型" : "regression"}</span>
+          <span className="wc-trust-item">📊 Poisson {lang === "zh" ? "迴歸模型" : "regression"}</span>
           <span className="wc-trust-div"></span>
-          <span className="wc-trust-item">🗄 {lang === "zh" ? "10 年歷史數據" : "10 yrs historical data"}</span>
+          <span className="wc-trust-item">📅 {lang === "zh" ? "10 年歷史數據" : "10 yrs historical data"}</span>
           <span className="wc-trust-div"></span>
-          <span className="wc-trust-item">🛡 Pinnacle + Bet365</span>
+          <span className="wc-trust-item">💹 Pinnacle + Bet365</span>
           <span className="wc-trust-div"></span>
           <span className="wc-trust-item">🔄 {lang === "zh" ? "每 6 小時更新" : "Updated every 6h"}</span>
         </div>
@@ -261,6 +273,7 @@ export default function MatchesPage() {
               prediction={predictions[match.id] || null}
               detailedOdds={detailedOdds[match.id] || null}
               onToggle={() => togglePrediction(match.id)}
+              onUpgrade={handleUpgrade}
               t={t}
             />
           ))}
@@ -272,11 +285,11 @@ export default function MatchesPage() {
   );
 }
 
-function MatchCard({ match, tier, lang, userEmail, isExpanded, isLoading, prediction, detailedOdds, onToggle, t }: {
+function MatchCard({ match, tier, lang, isExpanded, isLoading, prediction, detailedOdds, onToggle, onUpgrade, t }: {
   match: Match; tier: string; lang: Lang; userEmail: string;
   isExpanded: boolean; isLoading: boolean;
   prediction: PredictionResponse | null; detailedOdds: DetailedOdds | null;
-  onToggle: () => void; t: typeof T["zh"];
+  onToggle: () => void; onUpgrade: () => void; t: typeof T["zh"];
 }) {
   const kickoff = new Date(match.kickoff_utc);
   const timeStr = kickoff.toLocaleString(lang === "zh" ? "zh-TW" : "en-GB", {
@@ -327,7 +340,7 @@ function MatchCard({ match, tier, lang, userEmail, isExpanded, isLoading, predic
           ) : (
             <>
               {prediction.prediction.model_warning && (
-                <div className="wc-warn">⚠ {prediction.prediction.model_warning}</div>
+                <div className="wc-warn">⚠️ {prediction.prediction.model_warning}</div>
               )}
 
               {/* ELO */}
@@ -390,8 +403,15 @@ function MatchCard({ match, tier, lang, userEmail, isExpanded, isLoading, predic
                 </>
               ) : (
                 <div className="wc-lock">
-                  <span>🔒</span>
-                  <span className="wc-lock-txt">{t.lockLabel}</span>
+                  <div className="wc-lock-content">
+                    <span className="wc-lock-icon">🔒</span>
+                    <div className="wc-lock-right">
+                      <span className="wc-lock-txt">{t.lockLabel}</span>
+                      <button className="wc-upgrade-btn" onClick={(e) => { e.stopPropagation(); onUpgrade(); }}>
+                        {t.upgradeBtn}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -415,7 +435,6 @@ function ProbBox({ label, prob, color }: { label: string; prob?: number; color: 
   );
 }
 
-// ─── Styles ──────────────────────────────────────────────────
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
@@ -456,6 +475,8 @@ const CSS = `
 .wc-lb.on{background:var(--wc-blue);color:#fff}
 .wc-tier-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:var(--wc-s2);border:1.5px solid var(--wc-border2);color:var(--wc-body)}
 .wc-tier-badge.pro{background:rgba(59,130,246,0.18);border-color:rgba(147,197,253,0.45);color:var(--wc-sky)}
+.wc-nav-upgrade{font-family:var(--f);font-size:11px;font-weight:700;padding:5px 12px;border-radius:8px;border:none;background:var(--wc-amber);color:#000;cursor:pointer;transition:.15s}
+.wc-nav-upgrade:hover{background:#f59e0b}
 .wc-nav-link{font-size:12px;font-weight:600;color:var(--wc-body);text-decoration:none;transition:.15s}
 .wc-nav-link:hover{color:var(--wc-text)}
 
@@ -525,8 +546,14 @@ const CSS = `
 .wc-conf-val{font-size:11px;font-weight:700;color:var(--wc-sky);min-width:30px;text-align:right}
 
 /* LOCK */
-.wc-lock{display:flex;align-items:flex-start;gap:8px;background:var(--wc-amber-dim);border:1.5px solid var(--wc-amber-bdr);border-radius:8px;padding:10px 13px;margin-bottom:12px}
-.wc-lock-txt{font-size:11px;font-weight:700;color:var(--wc-amber);line-height:1.5}
+.wc-lock{background:var(--wc-amber-dim);border:1.5px solid var(--wc-amber-bdr);border-radius:10px;padding:14px;margin-bottom:12px}
+.wc-lock-content{display:flex;align-items:flex-start;gap:10px}
+.wc-lock-icon{font-size:18px;flex-shrink:0;margin-top:2px}
+.wc-lock-right{display:flex;flex-direction:column;gap:10px}
+.wc-lock-txt{font-size:12px;font-weight:700;color:var(--wc-amber);line-height:1.5}
+.wc-upgrade-btn{font-family:var(--f);font-size:13px;font-weight:800;padding:10px 20px;border-radius:8px;border:none;background:var(--wc-amber);color:#000;cursor:pointer;transition:.15s;align-self:flex-start}
+.wc-upgrade-btn:hover{background:#f59e0b;transform:translateY(-1px)}
+.wc-upgrade-btn:active{transform:translateY(0)}
 
 .wc-disclaimer{font-size:11px;font-weight:500;color:var(--wc-body);margin-top:12px;padding-top:12px;border-top:1px solid var(--wc-border2)}
 
@@ -538,5 +565,6 @@ const CSS = `
   .wc-card-main{flex-direction:column;align-items:flex-start}
   .wc-toggle-btn{align-self:flex-end;margin-top:4px}
   .wc-prob-row{gap:6px}
+  .wc-nav-right{gap:6px}
 }
 `;
