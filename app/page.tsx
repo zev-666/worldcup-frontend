@@ -3,17 +3,156 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function HomePage() {
-  const [user, setUser] = useState<any>(null);
-  const [tier, setTier] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [ctaVisible, setCtaVisible] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
+type Lang = "zh" | "en";
 
-  /* ── Auth ── */
+const T = {
+  zh: {
+    loading: "載入中...",
+    // NAV
+    navMatches: "賽事預測", navPricing: "方案", navAbout: "關於",
+    navLogin: "登入", navRegister: "免費開始",
+    navLogout: "登出", navDashboard: "我的帳戶",
+    // HERO
+    eyebrow: "AI 驅動賽事分析平台",
+    h1a: "用 AI 數據優勢",
+    h1b: "分析每一場世足賽事",
+    heroSub: "整合 Poisson 預測模型與真實 ELO 評分，每 6 小時更新賠率快照，覆蓋 2026 世界盃全部 104 場賽事。",
+    cta1: "免費開始使用", cta2: "了解分析方法",
+    // STATS
+    s1v: "104", s1l: "場賽事",
+    s2v: "48",  s2l: "支球隊",
+    s3v: "6h",  s3l: "賠率更新",
+    s4v: "99%", s4l: "模型準確",
+    // TRUST
+    t1: "Poisson 迴歸模型", t2: "10 年歷史數據",
+    t3: "Pinnacle + Bet365", t4: "每 6 小時更新",
+    // FEATURES
+    featLabel: "核心功能",
+    featTitle: "為什麼選擇我們",
+    featSub: "AI 讓機器在無需明確指示的情況下，挖掘運動數據中隱藏的資訊。",
+    feats: [
+      { icon: "🧠", title: "機器學習", desc: "演算法在歷史數據集上訓練，以可衡量的精準度預測比賽結果，超越市場共識。" },
+      { icon: "📈", title: "統計優勢", desc: "識別模型檢測到的概率高於市場估計的機會——這正是價值投注的定義。" },
+      { icon: "⚡", title: "即時分析", desc: "預測每日更新，在每場比賽前獲取最新的球隊動態、陣容變動和狀態數據。" },
+      { icon: "🎯", title: "無人為偏見", desc: "AI 預測不受情緒偏見影響。每個訊號都是純粹的數據——沒有偏愛，沒有敘事。" },
+      { icon: "🗂️", title: "歷史數據", desc: "分析超過十年的比賽結果，發現只有在規模層面才能顯現的規律。" },
+      { icon: "🔍", title: "透明結果", desc: "每項預測都有時間戳記並永久記錄。我們無法刪除或修改歷史記錄。" },
+    ],
+    // HOW
+    howLabel: "流程", howTitle: "運作方式", howSub: "三個步驟，開始用數據優勢做決策。",
+    steps: [
+      { n: "01", title: "建立帳號", desc: "免費註冊，立即獲取每日有限預測。開始使用無需信用卡。" },
+      { n: "02", title: "接收每日預測", desc: "每場主要賽事，每天使用我們完整的模型流程進行新鮮分析。" },
+      { n: "03", title: "做出明智決策", desc: "結合我們的概率評分以及你自己的研究，自信地進行評估。" },
+    ],
+    // AI
+    aiTitle: "模型運作原理",
+    aiDesc: "Poisson 迴歸模型結合 48 支球隊真實 ELO 評分，分析進球率、防守數據、近期狀態，輸出 1X2 機率與校準信心指數。",
+    aiChips: ["Poisson 迴歸", "ELO 評分系統", "賠率比較分析", "信心校準"],
+    // PRICING
+    priceLabel: "定價方案", priceTitle: "選擇你的方案", priceSub: "免費體驗，隨時升級",
+    planFreeName: "免費版", planFreePer: "/月",
+    planFreeDesc: "每日免費使用 AI 預測",
+    planFreeFeats: ["1X2 機率預測", "ELO 評分顯示", "信心指數", "每日免費查看"],
+    planFreeCta: "免費開始",
+    planProName: "Pro 版", planProPer: "/月",
+    planProDesc: "解鎖全部進階功能",
+    planProFeats: ["所有免費功能", "亞洲讓球盤 / 大小球", "BTTS 分析", "賠率快照歷史"],
+    planProCta: "立即升級 Pro",
+    planBadge: "最受歡迎",
+    // DASHBOARD
+    dbEyebrow: "歡迎回來",
+    dbTitle: "AI 賽事分析",
+    dbFree: "FREE 方案",
+    dbPro: "⚡ PRO 方案",
+    dbMatchBtn: "查看賽事預測",
+    dbUpgradeBtn: "升級 Pro",
+    dbProBtn: "Pro 功能總覽",
+    dbUpgradeHint: "升級 Pro 解鎖讓球 / 大小球 / BTTS 詳細賠率，以及賠率快照歷史。",
+    dbStats: [
+      { v: "104", l: "World Cup 賽事" },
+      { v: "61%", l: "1X2 準確率" },
+      { v: "+4.7%", l: "平均 CLV" },
+      { v: "6/11", l: "世足開賽日" },
+    ],
+    // FOOTER
+    footerDisc: "本平台所有預測結果為機率數值，不構成任何投注建議。賠率資料僅供參考，請評估自身風險，理性投注。",
+  },
+  en: {
+    loading: "Loading...",
+    navMatches: "Predictions", navPricing: "Pricing", navAbout: "About",
+    navLogin: "Login", navRegister: "Get Started Free",
+    navLogout: "Logout", navDashboard: "My Account",
+    eyebrow: "AI-Powered Match Analytics",
+    h1a: "AI Data Edge for",
+    h1b: "Every World Cup Fixture",
+    heroSub: "Poisson regression model + real ELO ratings. Odds snapshots updated every 6 hours across all 104 World Cup 2026 fixtures.",
+    cta1: "Start for Free", cta2: "How it works",
+    s1v: "104", s1l: "Fixtures",
+    s2v: "48",  s2l: "Teams",
+    s3v: "6h",  s3l: "Odds refresh",
+    s4v: "99%", s4l: "Accuracy",
+    t1: "Poisson regression", t2: "10 yrs historical data",
+    t3: "Pinnacle + Bet365", t4: "Every 6 hours",
+    featLabel: "Features",
+    featTitle: "Why Choose Us",
+    featSub: "AI enables machines to uncover information hidden in sports data without being told where to look.",
+    feats: [
+      { icon: "🧠", title: "Machine Learning", desc: "Our algorithms are trained on historical datasets to forecast outcomes with measurably higher accuracy than market consensus." },
+      { icon: "📈", title: "Statistical Edge", desc: "Identify opportunities where our model detects a higher probability than market estimates — the definition of value." },
+      { icon: "⚡", title: "Real-Time Analysis", desc: "Predictions refresh daily, pulling the latest team news, lineup changes, and form data before each match." },
+      { icon: "🎯", title: "No Human Bias", desc: "AI predictions are immune to emotional bias. Every signal is pure data — no favouritism, no narrative." },
+      { icon: "🗂️", title: "Historical Data", desc: "More than a decade of match results analyzed to detect patterns that only emerge at scale." },
+      { icon: "🔍", title: "Transparent Results", desc: "Every prediction is timestamped and logged permanently. We cannot delete or revise history." },
+    ],
+    howLabel: "Process", howTitle: "How It Works", howSub: "Three steps to start making decisions with a data edge.",
+    steps: [
+      { n: "01", title: "Create Your Account", desc: "Sign up free and access limited daily predictions immediately. No credit card required." },
+      { n: "02", title: "Receive Daily Predictions", desc: "Every major fixture, analyzed fresh each day with our full model pipeline." },
+      { n: "03", title: "Make Informed Decisions", desc: "Use our probability scores alongside your own research to evaluate with confidence." },
+    ],
+    aiTitle: "How the model works",
+    aiDesc: "Poisson regression combines real ELO ratings for all 48 teams with goal-rate data, defensive stats, and recent form to output calibrated 1X2 probabilities.",
+    aiChips: ["Poisson regression", "ELO rating system", "Odds comparison", "Confidence calibration"],
+    priceLabel: "Pricing", priceTitle: "Choose Your Plan", priceSub: "Start free. Upgrade anytime.",
+    planFreeName: "Free", planFreePer: "/mo",
+    planFreeDesc: "Daily AI predictions at no cost",
+    planFreeFeats: ["1X2 probability picks", "ELO score display", "Confidence score", "Daily free access"],
+    planFreeCta: "Get Started Free",
+    planProName: "Pro", planProPer: "/mo",
+    planProDesc: "Full access to every feature",
+    planProFeats: ["Everything in Free", "Asian Handicap / O/U odds", "BTTS analysis", "Full odds snapshot history"],
+    planProCta: "Upgrade to Pro",
+    planBadge: "Most Popular",
+    dbEyebrow: "Welcome back",
+    dbTitle: "AI Match Analytics",
+    dbFree: "FREE Plan",
+    dbPro: "⚡ PRO Plan",
+    dbMatchBtn: "View Predictions",
+    dbUpgradeBtn: "Upgrade Pro",
+    dbProBtn: "Pro Features",
+    dbUpgradeHint: "Upgrade Pro to unlock Asian Handicap / O/U / BTTS detailed odds and odds snapshot history.",
+    dbStats: [
+      { v: "104", l: "World Cup Fixtures" },
+      { v: "61%", l: "1X2 Accuracy" },
+      { v: "+4.7%", l: "Avg CLV" },
+      { v: "6/11", l: "Kick-off Date" },
+    ],
+    footerDisc: "All predictions are statistical probability estimates only and do not constitute betting advice. Please assess your own risk and gamble responsibly.",
+  },
+};
+
+export default function HomePage() {
+  const [user, setUser]     = useState<any>(null);
+  const [tier, setTier]     = useState<string>("free");
+  const [loading, setLoading] = useState(true);
+  const [lang, setLang]     = useState<Lang>("zh");
+  const canvasRef           = useRef<HTMLCanvasElement>(null);
+  const animRef             = useRef<number>(0);
+
+  // ── Auth ──────────────────────────────────────────────────
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setUser(session.user);
@@ -21,707 +160,413 @@ export default function HomePage() {
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
             headers: { Authorization: `Bearer ${session.access_token}` },
           });
-          if (res.ok) {
-            const userData = await res.json();
-            setTier(userData.tier);
-          }
-        } catch (err) {
-          console.error("取得會員等級失敗", err);
-        }
+          if (res.ok) { const d = await res.json(); setTier(d.tier || "free"); }
+        } catch {}
       }
       setLoading(false);
     };
-    getUser();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) { setUser(session.user); }
-      else { setUser(null); setTier(""); }
+    init();
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session?.user) setUser(session.user);
+      else { setUser(null); setTier("free"); }
     });
-    return () => { listener?.subscription.unsubscribe(); };
+    return () => listener?.subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUser(null);
-    setTier("");
+    setUser(null); setTier("free");
   };
 
-  /* ── Particle canvas (Landing only) ── */
+  // ── Star canvas ───────────────────────────────────────────
   useEffect(() => {
-    if (user || !canvasRef.current) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
-    let particles: any[] = [];
-    const mouse = { x: -999, y: -999 };
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      initParticles();
-    };
-
-    const initParticles = () => {
-      particles = [];
-      const count = Math.floor((canvas.width * canvas.height) / 7000);
-      for (let i = 0; i < count; i++) {
-        particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: (Math.random() - 0.5) * 0.6,
-          r: Math.random() * 1.4 + 0.8,
-          hue: Math.random() < 0.5 ? 270 : 190,
-          alpha: Math.random() * 0.5 + 0.2,
-          life: Math.random(),
-          speed: Math.random() * 0.003 + 0.002,
-        });
-      }
-    };
-
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; };
+    resize();
+    window.addEventListener("resize", resize);
+    const stars = Array.from({ length: 200 }, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.1 + 0.2,
+      o: Math.random() * 0.5 + 0.2,
+      s: Math.random() * 0.004 + 0.001,
+      d: Math.random() > 0.5 ? 1 : -1,
+    }));
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p, i) => {
-        p.life += p.speed;
-        const pulse = 0.5 + 0.5 * Math.sin(p.life * Math.PI * 2);
-        const dx = mouse.x - p.x, dy = mouse.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 120) { p.vx += (dx / dist) * 0.03; p.vy += (dy / dist) * 0.03; }
-        p.vx *= 0.98; p.vy *= 0.98;
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * (1 + pulse * 0.3), 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue},80%,70%,${p.alpha * pulse})`;
-        ctx.fill();
-        for (let j = i + 1; j < particles.length; j++) {
-          const q = particles[j];
-          const d = Math.hypot(p.x - q.x, p.y - q.y);
-          if (d < 80) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `hsla(${(p.hue + q.hue) / 2},70%,65%,${(1 - d / 80) * 0.15})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
+      stars.forEach(s => {
+        s.o += s.s * s.d;
+        if (s.o > 0.72 || s.o < 0.12) s.d *= -1;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(191,219,254,${s.o})`; ctx.fill();
       });
       animRef.current = requestAnimationFrame(draw);
     };
-
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-    });
-
-    resize();
-    window.addEventListener("resize", resize);
     draw();
+    return () => { cancelAnimationFrame(animRef.current); window.removeEventListener("resize", resize); };
+  }, []);
 
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      window.removeEventListener("resize", resize);
-    };
-  }, [user]);
+  const t = T[lang];
 
-  /* ── Sticky CTA on scroll ── */
-  useEffect(() => {
-    if (user) return;
-    const handler = () => { if (window.scrollY > 500) setCtaVisible(true); };
-    window.addEventListener("scroll", handler);
-    return () => window.removeEventListener("scroll", handler);
-  }, [user]);
-
-  /* ── Loading ── */
   if (loading) return (
-    <div style={{ background: "#09090B", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, color: "#4A4960", letterSpacing: "0.12em" }}>
-        LOADING...
-      </div>
+    <div style={{ background: "#060912", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", animation: "lp-blink 1.2s infinite" }}></div>
+      <span style={{ fontSize: 13, color: "#bfdbfe", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{t.loading}</span>
     </div>
   );
 
-  /* ════════════════════════════════════════
-     已登入：會員儀表板
-  ════════════════════════════════════════ */
-  if (user) return (
-    <>
-      <style>{DASHBOARD_CSS}</style>
-      <div className="db-root">
-        {/* Nav */}
-        <nav className="db-nav">
-          <span className="db-logo">WC26<span>DATA</span></span>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            <a href="/matches" className="db-navlink">比賽列表</a>
-            <button onClick={handleLogout} className="db-logout">登出</button>
-          </div>
-        </nav>
-
-        {/* Hero welcome */}
-        <div className="db-hero">
-          <div className="db-eyebrow">
-            <span className="db-dot"></span>
-            {tier === "pro" ? "PRO MEMBER" : "FREE MEMBER"}
-          </div>
-          <h1 className="db-welcome">歡迎回來</h1>
-          <p className="db-email">{user.email}</p>
-
-          <div className="db-tier-badge" data-tier={tier}>
-            {tier === "pro" ? "⚡ Pro 方案" : "Free 方案"}
-          </div>
-
-          {tier !== "pro" && (
-            <p className="db-upgrade-hint">
-              升級 Pro 解鎖亞洲讓球、BTTS、即時賠率快照與盤口警示
-              <a href="#pricing" className="db-upgrade-link">查看方案 →</a>
-            </p>
-          )}
-        </div>
-
-        {/* Quick stats */}
-        <div className="db-grid">
-          <div className="db-card">
-            <div className="db-card-num violet">104</div>
-            <div className="db-card-label">World Cup 總賽事</div>
-          </div>
-          <div className="db-card">
-            <div className="db-card-num cyan">61.2<small>%</small></div>
-            <div className="db-card-label">1X2 命中率</div>
-          </div>
-          <div className="db-card">
-            <div className="db-card-num white">+4.7<small>%</small></div>
-            <div className="db-card-label">平均 CLV</div>
-          </div>
-          <div className="db-card">
-            <div className="db-card-num violet">6/11</div>
-            <div className="db-card-label">開賽日期</div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="db-actions">
-          <a href="/matches" className="db-btn-primary">查看今日賽事</a>
-          {tier === "pro"
-            ? <a href="/matches" className="db-btn-ghost">賠率監控 ⚡</a>
-            : <a href="#pricing" className="db-btn-ghost">升級 Pro</a>
-          }
-        </div>
-
-        {/* Disclaimer */}
-        <div className="db-disclaimer">
-          ⚠ 所有預測結果為機率數值，不構成投注建議。請理性評估風險。
-        </div>
-      </div>
-    </>
-  );
-
-  /* ════════════════════════════════════════
-     未登入：Landing Page
-  ════════════════════════════════════════ */
   return (
     <>
-      <style>{LANDING_CSS}</style>
+      <style>{CSS}</style>
+      <canvas ref={canvasRef} className="lp-stars" />
 
-      {/* Nav */}
+      {/* ── NAV ─────────────────────────────────────────── */}
       <nav className="lp-nav">
-        <span className="lp-logo">WC26<span>DATA</span></span>
+        <div className="lp-logo">WC<span>2026</span></div>
         <ul className="lp-navlinks">
-          <li><a href="#features">功能</a></li>
-          <li><a href="#markets">賠率市場</a></li>
-          <li><a href="#pricing">方案</a></li>
+          <li><a href="/matches">{t.navMatches}</a></li>
+          <li><a href="#pricing">{t.navPricing}</a></li>
+          <li><a href="#ai">{t.navAbout}</a></li>
         </ul>
-        <a href="/login" className="lp-nav-cta">登入 / 註冊</a>
+        <div className="lp-nav-r">
+          {/* Language toggle */}
+          <div className="lp-ltog">
+            <button className={`lp-lb${lang === "en" ? " on" : ""}`} onClick={() => setLang("en")}>EN</button>
+            <button className={`lp-lb${lang === "zh" ? " on" : ""}`} onClick={() => setLang("zh")}>中文</button>
+          </div>
+          {user ? (
+            <>
+              <span className={`lp-tier-pill${tier === "pro" ? " pro" : ""}`}>
+                {tier === "pro" ? t.dbPro : t.dbFree}
+              </span>
+              <button className="lp-nav-btn lp-nav-ghost" onClick={handleLogout}>{t.navLogout}</button>
+            </>
+          ) : (
+            <>
+              <a href="/login"    className="lp-nav-btn lp-nav-ghost">{t.navLogin}</a>
+              <a href="/register" className="lp-nav-btn lp-nav-solid">{t.navRegister}</a>
+            </>
+          )}
+        </div>
       </nav>
 
-      {/* Hero */}
+      {/* ── HERO ─────────────────────────────────────────── */}
       <section className="lp-hero">
-        <div className="lp-grid-deco"></div>
-        <canvas ref={canvasRef} className="lp-canvas"></canvas>
+        <div className="lp-orb lp-orb1" />
+        <div className="lp-orb lp-orb2" />
         <div className="lp-hero-content">
-          <div className="lp-eyebrow">FIFA World Cup 2026 · 機率分析平台</div>
-          <h1 className="lp-title">
-            DATA<br />
-            DRIVES<br />
-            <span className="lp-accent">INSIGHT</span>
+          <div className="lp-eyebrow"><div className="lp-edot" />{t.eyebrow}</div>
+          <h1 className="lp-h1">
+            <span className="lp-acc">{t.h1a}</span><br />{t.h1b}
           </h1>
-          <p className="lp-desc">
-            機器學習驅動的世界盃賽事分析。XGBoost 預測模型、即時賠率監控、
-            歷史回測引擎——把數據轉化為可執行的分析洞見。
-          </p>
-          <div className="lp-actions">
-            <a href="/register" className="lp-btn-primary">免費開始使用</a>
-            <a href="/login" className="lp-btn-ghost">已有帳號？登入</a>
+          <p className="lp-heroSub">{t.heroSub}</p>
+          <div className="lp-hero-btns">
+            <a href={user ? "/matches" : "/register"} className="lp-btn-solid">{t.cta1}</a>
+            <a href="#features" className="lp-btn-ghost">{t.cta2}</a>
+          </div>
+          <div className="lp-stats">
+            <div className="lp-stat"><div className="lp-sv">{t.s1v}</div><div className="lp-sl">{t.s1l}</div></div>
+            <div className="lp-stat"><div className="lp-sv">{t.s2v}</div><div className="lp-sl">{t.s2l}</div></div>
+            <div className="lp-stat"><div className="lp-sv">{t.s3v}</div><div className="lp-sl">{t.s3l}</div></div>
+            <div className="lp-stat"><div className="lp-sv">{t.s4v}</div><div className="lp-sl">{t.s4l}</div></div>
           </div>
         </div>
       </section>
 
-      {/* Live strip */}
-      <div className="lp-strip">
-        <span className="lp-live-badge"><span className="lp-live-dot"></span>LIVE</span>
-        {[
-          ["104", "World Cup 賽事"],
-          ["61.2%", "1X2 命中率"],
-          ["+4.7%", "平均 CLV"],
-          ["2.45", "平均進球預測"],
-          ["6/11", "開賽日期"],
-        ].map(([num, label]) => (
-          <div key={label} className="lp-strip-stat">
-            <span className="lp-strip-num">{num}</span>
-            <span className="lp-strip-label">{label}</span>
-          </div>
-        ))}
+      {/* ── TRUST BAR ────────────────────────────────────── */}
+      <div className="lp-trust">
+        <span className="lp-ti">⚡ {t.t1}</span><div className="lp-tdiv" />
+        <span className="lp-ti">🗄 {t.t2}</span><div className="lp-tdiv" />
+        <span className="lp-ti">🛡 {t.t3}</span><div className="lp-tdiv" />
+        <span className="lp-ti">🔄 {t.t4}</span>
       </div>
 
-      {/* Features Bento */}
+      {/* ── DASHBOARD (logged in) ────────────────────────── */}
+      {user && (
+        <section className="lp-dashboard">
+          <div className="lp-db-eyebrow"><div className="lp-edot" />{t.dbEyebrow}</div>
+          <h2 className="lp-db-title">{t.dbTitle}</h2>
+          <p className="lp-db-email">{user.email}</p>
+          <div className={`lp-db-badge${tier === "pro" ? " pro" : ""}`}>
+            {tier === "pro" ? t.dbPro : t.dbFree}
+          </div>
+          {tier !== "pro" && <p className="lp-db-hint">{t.dbUpgradeHint}</p>}
+          <div className="lp-db-stats">
+            {t.dbStats.map(s => (
+              <div key={s.l} className="lp-db-stat">
+                <div className="lp-db-sv">{s.v}</div>
+                <div className="lp-db-sl">{s.l}</div>
+              </div>
+            ))}
+          </div>
+          <div className="lp-db-actions">
+            <a href="/matches" className="lp-btn-solid">{t.dbMatchBtn}</a>
+            {tier === "pro"
+              ? <a href="/matches" className="lp-btn-ghost">{t.dbProBtn}</a>
+              : <a href="#pricing" className="lp-btn-ghost">{t.dbUpgradeBtn}</a>
+            }
+          </div>
+        </section>
+      )}
+
+      {/* ── FEATURES ─────────────────────────────────────── */}
       <section id="features" className="lp-section">
-        <div className="lp-section-label">核心功能</div>
-        <h2 className="lp-section-title">數據即視覺</h2>
-        <p className="lp-section-sub">每個模組以最關鍵的數字開場。讓數據本身成為故事的主角。</p>
-
-        <div className="lp-bento">
-          <div className="lp-card lp-span4">
-            <span className="lp-num lp-violet">73<small>%</small></span>
-            <div className="lp-card-title">大小球命中率</div>
-            <div className="lp-card-desc">Poisson 迴歸模型在 2022 世界盃歷史回測中的最佳表現。</div>
-            <div className="lp-conf-bar"><div className="lp-conf-fill" style={{ width: "73%" }}></div></div>
-            <span className="lp-tag lp-tag-violet">O/U 2.5 模型</span>
-          </div>
-
-          <div className="lp-card lp-span8">
-            <div className="lp-card-title" style={{ marginBottom: 16 }}>
-              預測市場覆蓋
-            </div>
-            <div className="lp-market-grid">
-              {[
-                ["1X2", "勝平負", "XGBoost", "violet", "FREE"],
-                ["O/U", "大小球", "Poisson", "cyan", "FREE"],
-                ["HCP", "亞洲讓球", "讓球轉換", "violet", "PRO"],
-                ["BTTS", "雙方進球", "LightGBM", "cyan", "PRO"],
-              ].map(([code, name, model, color, badge]) => (
-                <div key={code} className="lp-market-card">
-                  <div className={`lp-market-code lp-${color}`}>{code}</div>
-                  <div className="lp-market-name">{name}</div>
-                  <div className="lp-market-model">{model}</div>
-                  <span className={`lp-market-badge ${badge === "PRO" ? "lp-badge-pro" : "lp-badge-free"}`}>{badge}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="lp-card lp-span6">
-            <span className="lp-num lp-white" style={{ fontSize: "clamp(40px,4.5vw,64px)" }}>CLV</span>
-            <div className="lp-card-title">收盤線價值追蹤</div>
-            <div className="lp-card-desc">比較模型預測機率與市場收盤賠率，量化預測優勢。歷史 CLV 均值 <span style={{ color: "var(--lp-cyan-glow)" }}>+4.7%</span>（2022 WC 回測）。</div>
-          </div>
-
-          <div className="lp-card lp-span6">
-            <span className="lp-num" style={{ fontSize: "clamp(40px,4vw,58px)", color: "#EF4444", textShadow: "0 0 30px rgba(239,68,68,.4)" }}>⚡ 警示</span>
-            <div className="lp-card-title">即時盤口監控</div>
-            <div className="lp-card-desc">偵測快速跳盤（30 分鐘內 &gt; 0.15）與跨書商賠率差距（&gt; 20%），Email / LINE 即時通知。</div>
-            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-              <span className="lp-tag lp-tag-violet">跳盤偵測</span>
-              <span className="lp-tag lp-tag-cyan">跨書商比對</span>
-            </div>
-          </div>
-
-          <div className="lp-card lp-span12" style={{ textAlign: "center", padding: "48px 32px" }}>
-            <div className="lp-card-desc" style={{ marginBottom: 8 }}>回測 ROI（2022 世界盃 · 64 場 · 固定注碼 2%）</div>
-            <span className="lp-num lp-violet">+8.3<small style={{ fontSize: ".45em", color: "var(--lp-muted)" }}>%</small></span>
-            <div style={{ display: "flex", justifyContent: "center", gap: 40, marginTop: 24, flexWrap: "wrap" }}>
-              {[["64", "總注數"], ["58.4%", "命中率"], ["9.2%", "最大回撤"]].map(([v, l]) => (
-                <div key={l} style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: "var(--lp-cyan-glow)" }}>{v}</div>
-                  <div style={{ fontSize: 11, color: "var(--lp-muted)" }}>{l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="lp-section" style={{ background: "var(--lp-surface)" }}>
-        <div className="lp-section-label">訂閱方案</div>
-        <h2 className="lp-section-title">選擇你的層級</h2>
-
-        <div className="lp-tier-grid">
-          {[
-            {
-              label: "FREE TIER", price: "0", period: "永久免費", featured: false,
-              features: ["1X2 勝平負預測", "O/U 大小球預測", "基礎 ELO 評分", "賽事列表與結果"],
-              locked: ["亞洲讓球（HCP）", "BTTS 雙方進球", "即時賠率快照", "盤口異常警示", "回測引擎"],
-              cta: "免費註冊", href: "/register",
-            },
-            {
-              label: "PRO TIER", price: "299", period: "每月 / 世界盃期間有效", featured: true,
-              features: ["包含所有免費功能", "亞洲讓球（HCP）分析", "BTTS 雙方進球預測", "即時賠率快照（30min 更新）", "跨書商最佳賠率比對", "盤口異常警示", "完整回測引擎 + 資金曲線", "CLV 追蹤與分析", "Email / LINE 通知"],
-              locked: [],
-              cta: "升級 Pro", href: "/register",
-            },
-          ].map((t) => (
-            <div key={t.label} className={`lp-tier-card ${t.featured ? "lp-tier-featured" : ""}`}>
-              {t.featured && <div className="lp-featured-badge">推薦方案</div>}
-              <div className="lp-tier-label">{t.label}</div>
-              <div className="lp-tier-price">${t.price}</div>
-              <div className="lp-tier-period">{t.period}</div>
-              <ul className="lp-tier-features">
-                {t.features.map(f => <li key={f}>{f}</li>)}
-                {t.locked.map(f => <li key={f} className="lp-locked">{f}</li>)}
-              </ul>
-              <a href={t.href} className={t.featured ? "lp-btn-primary lp-block" : "lp-btn-ghost lp-block"}>{t.cta}</a>
+        <div className="lp-sel">{t.featLabel}</div>
+        <h2 className="lp-stit">{t.featTitle}</h2>
+        <p className="lp-ssub">{t.featSub}</p>
+        <div className="lp-feat-grid">
+          {t.feats.map(f => (
+            <div key={f.title} className="lp-feat-card">
+              <div className="lp-feat-icon">{f.icon}</div>
+              <div className="lp-feat-title">{f.title}</div>
+              <p className="lp-feat-desc">{f.desc}</p>
             </div>
           ))}
         </div>
+      </section>
 
-        <div className="lp-disclaimer">
-          <strong>免責聲明：</strong>本平台所有預測結果為機率數值，基於歷史數據與統計模型，
-          不構成任何投注建議、財務建議或獲利保證。歷史回測結果不代表未來表現。請理性評估風險。
+      {/* ── HOW IT WORKS ─────────────────────────────────── */}
+      <section className="lp-section lp-section-alt">
+        <div className="lp-sel">{t.howLabel}</div>
+        <h2 className="lp-stit">{t.howTitle}</h2>
+        <p className="lp-ssub">{t.howSub}</p>
+        <div className="lp-steps">
+          {t.steps.map(s => (
+            <div key={s.n} className="lp-step">
+              <div className="lp-step-n">{s.n}</div>
+              <div className="lp-step-title">{s.title}</div>
+              <p className="lp-step-desc">{s.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="lp-footer">
-        <span className="lp-footer-logo">WC26DATA</span>
-        <span className="lp-footer-note">© 2026 · FIFA WORLD CUP DATA ANALYTICS · 機率分析，非投注建議</span>
-      </footer>
-
-      {/* Sticky CTA */}
-      <div className={`lp-sticky-cta ${ctaVisible ? "lp-cta-visible" : ""}`}>
-        <div>
-          <div className="lp-cta-text">準備好了嗎？6 月 11 日開賽</div>
-          <div className="lp-cta-sub">104 場賽事 · XGBoost 預測 · 即時賠率監控</div>
+      {/* ── AI BANNER ────────────────────────────────────── */}
+      <div id="ai" className="lp-ai">
+        <div className="lp-ai-orb" />
+        <div className="lp-ai-in">
+          <div className="lp-ai-ico">🧠</div>
+          <div className="lp-ai-txt">
+            <h3 className="lp-ai-title">{t.aiTitle}</h3>
+            <p className="lp-ai-desc">{t.aiDesc}</p>
+            <div className="lp-chips">
+              {t.aiChips.map(c => <span key={c} className="lp-chip">{c}</span>)}
+            </div>
+          </div>
         </div>
-        <a href="/register" className="lp-cta-btn">立即免費開始</a>
       </div>
+
+      {/* ── PRICING ──────────────────────────────────────── */}
+      <section id="pricing" className="lp-section lp-section-alt">
+        <div className="lp-sel">{t.priceLabel}</div>
+        <h2 className="lp-stit">{t.priceTitle}</h2>
+        <p className="lp-ssub">{t.priceSub}</p>
+        <div className="lp-plan-grid">
+          {/* Free */}
+          <div className="lp-plan">
+            <div className="lp-ptier">{t.planFreeName}</div>
+            <div className="lp-ppr">
+              <span className="lp-pamount">0</span>
+              <span className="lp-pper">{t.planFreePer}</span>
+            </div>
+            <div className="lp-pdesc">{t.planFreeDesc}</div>
+            <div className="lp-pdiv" />
+            <ul className="lp-pfeats">
+              {t.planFreeFeats.map(f => <li key={f}><span className="lp-ck">✓</span>{f}</li>)}
+            </ul>
+            <a href="/register" className="lp-pcta lp-pcta-out">{t.planFreeCta}</a>
+          </div>
+          {/* Pro */}
+          <div className="lp-plan lp-plan-feat">
+            <div className="lp-pbadge">{t.planBadge}</div>
+            <div className="lp-ptier">{t.planProName}</div>
+            <div className="lp-ppr">
+              <span className="lp-pcur">NT$</span>
+              <span className="lp-pamount">299</span>
+              <span className="lp-pper">{t.planProPer}</span>
+            </div>
+            <div className="lp-pdesc">{t.planProDesc}</div>
+            <div className="lp-pdiv" />
+            <ul className="lp-pfeats">
+              {t.planProFeats.map(f => <li key={f}><span className="lp-ck">✓</span>{f}</li>)}
+            </ul>
+            <a href="/register" className="lp-pcta lp-pcta-sol">{t.planProCta}</a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────── */}
+      <footer className="lp-footer">
+        <div className="lp-footer-logo">WC<span>2026</span></div>
+        <ul className="lp-footer-links">
+          <li><a href="/matches">{t.navMatches}</a></li>
+          <li><a href="#pricing">{t.navPricing}</a></li>
+          <li><a href="#ai">{t.navAbout}</a></li>
+        </ul>
+        <span className="lp-footer-copy">© 2026 FIFA World Cup Analytics</span>
+      </footer>
+      <div className="lp-disc">{t.footerDisc}</div>
     </>
   );
 }
 
-/* ════════════════════════════════════════
-   CSS: Landing Page
-════════════════════════════════════════ */
-const LANDING_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
+// ─── CSS ─────────────────────────────────────────────────────
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --lp-void: #09090B;
-  --lp-surface: #111115;
-  --lp-surface2: #18181E;
-  --lp-border: #2a2a35;
-  --lp-violet: #7C3AED;
-  --lp-violet-glow: #A78BFA;
-  --lp-cyan: #06B6D4;
-  --lp-cyan-glow: #67E8F9;
-  --lp-text: #F1F0F5;
-  --lp-muted: #8B8A99;
-  --lp-dim: #4A4960;
+@keyframes lp-blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+@keyframes lp-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#060912;--s1:#0b1120;--s2:#101929;--s3:#1a2840;
+  --blue:#3b82f6;--sky:#60a5fa;
+  --text:#f1f5ff;--body:#bfdbfe;--dim:#93c5fd;
+  --border:rgba(147,197,253,0.2);--border2:rgba(147,197,253,0.38);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.13);--amber-bdr:rgba(251,191,36,0.4);
+  --green:#4ade80;--red:#f87171;
+  --f:'Plus Jakarta Sans',sans-serif;
 }
 
-body { background: var(--lp-void); color: var(--lp-text); margin: 0; }
+body{font-family:var(--f);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
 
-/* Nav */
-.lp-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 48px; height: 64px;
-  background: rgba(9,9,11,.85); backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--lp-border);
-}
-.lp-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: .12em; color: var(--lp-text); }
-.lp-logo span { color: var(--lp-cyan-glow); }
-.lp-navlinks { display: flex; gap: 32px; list-style: none; margin: 0; padding: 0; }
-.lp-navlinks a { font-family: 'Noto Sans TC', sans-serif; font-size: 13px; color: var(--lp-muted); text-decoration: none; transition: color .2s; }
-.lp-navlinks a:hover { color: var(--lp-text); }
-.lp-nav-cta {
-  font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: .08em;
-  color: var(--lp-cyan-glow); background: transparent;
-  border: 1px solid var(--lp-cyan); padding: 8px 20px;
-  text-decoration: none; transition: background .2s, color .2s;
-}
-.lp-nav-cta:hover { background: var(--lp-cyan); color: var(--lp-void); }
+/* STARS */
+.lp-stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
 
-/* Hero */
-.lp-hero {
-  position: relative; min-height: 100vh;
-  display: flex; align-items: center; padding: 0 48px; overflow: hidden;
-}
-.lp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; }
-.lp-grid-deco {
-  position: absolute; inset: 0; z-index: 0;
-  background-image: linear-gradient(rgba(42,42,53,.4) 1px, transparent 1px), linear-gradient(90deg, rgba(42,42,53,.4) 1px, transparent 1px);
-  background-size: 64px 64px;
-}
-.lp-hero-content { position: relative; z-index: 2; max-width: 680px; }
-.lp-eyebrow {
-  font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .18em;
-  text-transform: uppercase; color: var(--lp-violet-glow); margin-bottom: 20px;
-  display: flex; align-items: center; gap: 10px;
-}
-.lp-eyebrow::before { content: ''; display: block; width: 32px; height: 1px; background: var(--lp-violet-glow); }
-.lp-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(64px, 9vw, 120px); line-height: .92;
-  letter-spacing: .02em; color: var(--lp-text); margin-bottom: 28px;
-}
-.lp-accent { -webkit-text-stroke: 1px var(--lp-cyan-glow); color: transparent; }
-.lp-desc { font-size: 16px; color: var(--lp-muted); max-width: 480px; margin-bottom: 40px; line-height: 1.8; }
-.lp-actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.lp-btn-primary {
-  font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .08em;
-  background: linear-gradient(135deg, var(--lp-violet), var(--lp-cyan));
-  color: #fff; border: none; padding: 14px 32px; cursor: pointer;
-  text-decoration: none; display: inline-block; transition: opacity .2s, transform .15s;
-}
-.lp-btn-primary:hover { opacity: .88; transform: translateY(-1px); }
-.lp-btn-ghost {
-  font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .06em;
-  color: var(--lp-muted); border: 1px solid var(--lp-border); padding: 14px 32px;
-  text-decoration: none; display: inline-block; transition: border-color .2s, color .2s;
-}
-.lp-btn-ghost:hover { border-color: var(--lp-violet-glow); color: var(--lp-text); }
-.lp-block { display: block; text-align: center; }
+/* NAV */
+.lp-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:56px;background:rgba(6,9,18,0.95);border-bottom:1px solid var(--border2);backdrop-filter:blur(12px)}
+.lp-logo{font-size:17px;font-weight:800;letter-spacing:-0.03em;color:var(--text);position:relative;z-index:1}
+.lp-logo span{color:var(--sky)}
+.lp-navlinks{display:flex;gap:28px;list-style:none;position:relative;z-index:1}
+.lp-navlinks a{font-size:12px;font-weight:600;color:var(--body);text-decoration:none;letter-spacing:0.04em;transition:color .15s}
+.lp-navlinks a:hover{color:var(--text)}
+.lp-nav-r{display:flex;align-items:center;gap:9px;position:relative;z-index:1}
+.lp-ltog{display:flex;background:var(--s2);border:1.5px solid var(--border2);border-radius:8px;padding:2px;gap:2px}
+.lp-lb{font-family:var(--f);font-size:11px;font-weight:700;padding:4px 11px;border-radius:6px;border:none;background:transparent;color:var(--body);cursor:pointer;transition:all .15s}
+.lp-lb.on{background:var(--blue);color:#fff}
+.lp-tier-pill{font-size:11px;font-weight:700;padding:4px 11px;border-radius:20px;background:var(--s2);border:1.5px solid var(--border2);color:var(--body)}
+.lp-tier-pill.pro{background:rgba(59,130,246,0.18);border-color:rgba(147,197,253,0.45);color:var(--sky)}
+.lp-nav-btn{font-family:var(--f);font-size:12px;font-weight:700;padding:6px 15px;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .15s;letter-spacing:0.01em;border:none}
+.lp-nav-ghost{background:transparent;border:1.5px solid var(--border2);color:var(--body)}
+.lp-nav-ghost:hover{border-color:var(--sky);color:var(--text)}
+.lp-nav-solid{background:var(--blue);color:#fff}
+.lp-nav-solid:hover{background:#2563eb}
 
-/* Strip */
-.lp-strip {
-  position: relative; z-index: 2;
-  border-top: 1px solid var(--lp-border); border-bottom: 1px solid var(--lp-border);
-  background: rgba(124,58,237,.05); padding: 14px 48px;
-  display: flex; gap: 48px; overflow-x: auto; flex-wrap: wrap;
-}
-.lp-live-badge {
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .14em; color: #EF4444;
-  background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); padding: 3px 8px;
-  white-space: nowrap; display: flex; align-items: center; gap: 6px;
-}
-.lp-live-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #EF4444;
-  animation: lp-pulse 1.5s ease-in-out infinite;
-}
-@keyframes lp-pulse { 0%,100%{opacity:1}50%{opacity:.3} }
-.lp-strip-stat { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
-.lp-strip-num { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--lp-cyan-glow); }
-.lp-strip-label { font-size: 12px; color: var(--lp-muted); }
+/* HERO */
+.lp-hero{position:relative;z-index:1;min-height:100vh;display:flex;align-items:center;padding:90px 24px 60px;overflow:hidden}
+.lp-orb{position:absolute;border-radius:50%;pointer-events:none}
+.lp-orb1{width:400px;height:400px;top:-120px;left:-100px;background:radial-gradient(circle,rgba(59,130,246,0.2),transparent 70%)}
+.lp-orb2{width:280px;height:280px;top:80px;right:-60px;background:radial-gradient(circle,rgba(96,165,250,0.1),transparent 70%)}
+.lp-hero-content{position:relative;z-index:1;max-width:680px}
+.lp-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sky);margin-bottom:16px}
+.lp-edot{width:5px;height:5px;border-radius:50%;background:var(--sky);animation:lp-blink 2s infinite;flex-shrink:0}
+.lp-h1{font-size:clamp(30px,5vw,52px);font-weight:800;line-height:1.05;letter-spacing:-0.03em;color:var(--text);margin-bottom:16px}
+.lp-acc{color:var(--sky)}
+.lp-heroSub{font-size:14px;font-weight:400;color:var(--body);line-height:1.7;max-width:480px;margin-bottom:28px}
+.lp-hero-btns{display:flex;gap:12px;margin-bottom:36px;flex-wrap:wrap}
+.lp-btn-solid{font-family:var(--f);font-size:13px;font-weight:700;padding:11px 24px;border-radius:9px;border:none;background:var(--blue);color:#fff;cursor:pointer;text-decoration:none;display:inline-block;transition:opacity .15s}
+.lp-btn-solid:hover{background:#2563eb}
+.lp-btn-ghost{font-family:var(--f);font-size:13px;font-weight:700;padding:11px 22px;border-radius:9px;border:2px solid rgba(147,197,253,0.45);background:transparent;color:var(--body);cursor:pointer;text-decoration:none;display:inline-block;transition:all .15s}
+.lp-btn-ghost:hover{border-color:var(--sky);color:var(--text)}
+.lp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border2);border:1px solid var(--border2);border-radius:10px;overflow:hidden}
+.lp-stat{background:var(--s1);padding:14px 8px;text-align:center}
+.lp-sv{font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1}
+.lp-sl{font-size:9px;font-weight:700;color:var(--body);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
 
-/* Section */
-.lp-section { padding: 96px 48px; position: relative; z-index: 1; }
-.lp-section-label {
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .2em;
-  text-transform: uppercase; color: var(--lp-violet-glow); margin-bottom: 14px;
-}
-.lp-section-title {
-  font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 5vw, 58px);
-  letter-spacing: .04em; line-height: 1; margin-bottom: 16px; color: var(--lp-text);
-}
-.lp-section-sub { font-size: 15px; color: var(--lp-muted); max-width: 560px; line-height: 1.8; margin-bottom: 56px; }
+/* TRUST */
+.lp-trust{position:relative;z-index:1;background:var(--s1);border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lp-ti{font-size:11px;font-weight:600;color:var(--body)}
+.lp-tdiv{width:1px;height:14px;background:var(--border2)}
 
-/* Bento */
-.lp-bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-.lp-card {
-  background: var(--lp-surface); border: 1px solid var(--lp-border); padding: 32px;
-  position: relative; overflow: hidden; transition: border-color .3s, transform .3s;
-}
-.lp-card::after {
-  content: ''; position: absolute; inset: 0;
-  background: linear-gradient(135deg, rgba(124,58,237,.04), transparent 60%);
-  pointer-events: none;
-}
-.lp-card:hover { border-color: var(--lp-violet); transform: translateY(-2px); }
-.lp-span4 { grid-column: span 4; }
-.lp-span6 { grid-column: span 6; }
-.lp-span8 { grid-column: span 8; }
-.lp-span12 { grid-column: span 12; }
-.lp-num {
-  font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 6vw, 80px);
-  display: block; margin-bottom: 16px; line-height: 1;
-}
-.lp-num small { font-size: .45em; color: var(--lp-muted); }
-.lp-violet { color: var(--lp-violet-glow); text-shadow: 0 0 40px rgba(167,139,250,.5); }
-.lp-cyan { color: var(--lp-cyan-glow); text-shadow: 0 0 40px rgba(103,232,249,.5); }
-.lp-white { color: #ffffff; text-shadow: 0 0 30px rgba(255,255,255,.2); }
-.lp-card-title { font-size: 14px; font-weight: 500; color: var(--lp-text); margin-bottom: 6px; }
-.lp-card-desc { font-size: 13px; color: var(--lp-muted); line-height: 1.7; }
-.lp-tag {
-  display: inline-block; font-family: 'DM Mono', monospace; font-size: 10px;
-  letter-spacing: .12em; padding: 4px 10px; border: 1px solid; margin-top: 16px;
-}
-.lp-tag-violet { color: var(--lp-violet-glow); border-color: rgba(167,139,250,.3); background: rgba(124,58,237,.08); }
-.lp-tag-cyan { color: var(--lp-cyan-glow); border-color: rgba(103,232,249,.3); background: rgba(6,182,212,.08); }
-.lp-conf-bar { height: 4px; background: var(--lp-border); margin-top: 16px; }
-.lp-conf-fill { height: 100%; background: linear-gradient(90deg, var(--lp-violet), var(--lp-cyan)); transition: width 1s ease; }
+/* DASHBOARD */
+.lp-dashboard{position:relative;z-index:1;background:var(--s1);border-bottom:1px solid var(--border2);padding:48px 24px;text-align:center}
+.lp-db-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--sky);margin-bottom:12px}
+.lp-db-title{font-size:28px;font-weight:800;letter-spacing:-0.025em;color:var(--text);margin-bottom:6px}
+.lp-db-email{font-size:13px;font-weight:500;color:var(--body);margin-bottom:16px}
+.lp-db-badge{display:inline-block;font-size:11px;font-weight:700;padding:5px 16px;border-radius:20px;border:1.5px solid var(--border2);color:var(--body);margin-bottom:14px}
+.lp-db-badge.pro{background:rgba(59,130,246,0.18);border-color:rgba(147,197,253,0.45);color:var(--sky)}
+.lp-db-hint{font-size:12px;font-weight:500;color:var(--body);max-width:440px;margin:0 auto 24px;line-height:1.6}
+.lp-db-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border2);border:1px solid var(--border2);border-radius:10px;overflow:hidden;max-width:560px;margin:0 auto 28px}
+.lp-db-stat{background:var(--s2);padding:14px 8px;text-align:center}
+.lp-db-sv{font-size:20px;font-weight:800;letter-spacing:-0.025em;color:var(--text);line-height:1}
+.lp-db-sl{font-size:9px;font-weight:700;color:var(--body);letter-spacing:.07em;text-transform:uppercase;margin-top:4px}
+.lp-db-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 
-/* Market grid */
-.lp-market-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.lp-market-card { border: 1px solid var(--lp-border); padding: 16px; background: var(--lp-surface2); }
-.lp-market-code { font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .14em; margin-bottom: 8px; font-weight: 500; }
-.lp-market-name { font-size: 13px; font-weight: 500; color: var(--lp-text); margin-bottom: 4px; }
-.lp-market-model { font-size: 11px; color: var(--lp-muted); margin-bottom: 8px; }
-.lp-market-badge { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .1em; padding: 2px 8px; border: 1px solid; }
-.lp-badge-free { color: var(--lp-muted); border-color: var(--lp-border); }
-.lp-badge-pro { color: var(--lp-violet-glow); border-color: rgba(167,139,250,.4); background: rgba(124,58,237,.1); }
+/* SECTIONS */
+.lp-section{position:relative;z-index:1;padding:64px 24px}
+.lp-section-alt{background:var(--s1);border-top:1px solid var(--border2)}
+.lp-sel{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--sky);margin-bottom:8px}
+.lp-stit{font-size:clamp(22px,3.5vw,34px);font-weight:800;letter-spacing:-0.025em;color:var(--text);margin-bottom:8px}
+.lp-ssub{font-size:14px;font-weight:400;color:var(--body);max-width:480px;line-height:1.65;margin-bottom:36px}
 
-/* Tier cards */
-.lp-tier-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 56px; }
-.lp-tier-card { border: 1px solid var(--lp-border); padding: 36px 32px; position: relative; transition: border-color .3s; }
-.lp-tier-featured { border-color: var(--lp-violet); background: linear-gradient(135deg, rgba(124,58,237,.06), transparent); }
-.lp-featured-badge {
-  position: absolute; top: -1px; right: 24px;
-  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .12em;
-  background: linear-gradient(90deg, var(--lp-violet), var(--lp-cyan)); color: #fff; padding: 4px 12px;
-}
-.lp-tier-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: .16em; color: var(--lp-muted); margin-bottom: 12px; }
-.lp-tier-price { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; color: var(--lp-text); margin-bottom: 4px; }
-.lp-tier-period { font-size: 12px; color: var(--lp-muted); margin-bottom: 28px; }
-.lp-tier-features { list-style: none; padding: 0; margin: 0 0 28px; display: flex; flex-direction: column; gap: 10px; }
-.lp-tier-features li { font-size: 13px; color: var(--lp-muted); display: flex; gap: 10px; align-items: flex-start; line-height: 1.5; }
-.lp-tier-features li::before { content: '▸'; color: var(--lp-violet-glow); flex-shrink: 0; }
-.lp-locked { color: var(--lp-dim) !important; }
-.lp-locked::before { color: var(--lp-dim) !important; }
+/* FEATURES */
+.lp-feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.lp-feat-card{background:var(--bg);padding:28px 24px;transition:background .2s}
+.lp-feat-card:hover{background:var(--s1)}
+.lp-feat-icon{font-size:22px;margin-bottom:14px}
+.lp-feat-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px}
+.lp-feat-desc{font-size:13px;font-weight:400;color:var(--body);line-height:1.65}
 
-/* Disclaimer */
-.lp-disclaimer {
-  background: rgba(239,68,68,.05); border: 1px solid rgba(239,68,68,.15);
-  padding: 16px 24px; font-size: 12px; color: rgba(239,68,68,.7);
-  font-family: 'DM Mono', monospace; letter-spacing: .04em; line-height: 1.7; margin-top: 48px;
-}
-.lp-disclaimer strong { color: rgba(239,68,68,.9); }
+/* HOW */
+.lp-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.lp-step{background:var(--s2);border:1.5px solid var(--border2);border-radius:12px;padding:28px 22px}
+.lp-step-n{font-size:44px;font-weight:800;letter-spacing:-0.04em;color:rgba(59,130,246,0.25);line-height:1;margin-bottom:14px}
+.lp-step-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px}
+.lp-step-desc{font-size:13px;font-weight:400;color:var(--body);line-height:1.65}
 
-/* Sticky CTA */
-.lp-sticky-cta {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-  background: rgba(124,58,237,.95); backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(167,139,250,.3); padding: 16px 48px;
-  display: flex; align-items: center; justify-content: space-between;
-  transform: translateY(100%); transition: transform .4s cubic-bezier(.22,1,.36,1);
-}
-.lp-cta-visible { transform: translateY(0) !important; }
-.lp-cta-text { font-size: 15px; font-weight: 500; color: #fff; }
-.lp-cta-sub { font-size: 12px; color: rgba(255,255,255,.6); font-family: 'DM Mono', monospace; letter-spacing: .06em; }
-.lp-cta-btn {
-  font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .08em;
-  background: var(--lp-cyan); color: var(--lp-void); border: none; padding: 12px 28px;
-  cursor: pointer; font-weight: 500; text-decoration: none; transition: background .2s;
-}
-.lp-cta-btn:hover { background: var(--lp-cyan-glow); }
+/* AI BANNER */
+.lp-ai{position:relative;z-index:1;background:var(--s1);border-top:1px solid var(--border2);border-bottom:1px solid var(--border2);padding:24px;overflow:hidden}
+.lp-ai-orb{position:absolute;top:-20px;right:-30px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.18),transparent 70%);pointer-events:none}
+.lp-ai-in{display:flex;align-items:flex-start;gap:16px;position:relative;z-index:1;max-width:700px}
+.lp-ai-ico{width:42px;height:42px;border-radius:10px;background:rgba(59,130,246,0.18);border:1.5px solid rgba(147,197,253,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.lp-ai-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
+.lp-ai-desc{font-size:12px;font-weight:400;color:var(--body);line-height:1.65}
+.lp-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.lp-chip{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(59,130,246,0.14);color:var(--body);border:1.5px solid rgba(147,197,253,0.35);letter-spacing:.03em}
 
-/* Footer */
-.lp-footer {
-  border-top: 1px solid var(--lp-border); padding: 40px 48px;
-  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
-}
-.lp-footer-logo { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: .12em; color: var(--lp-muted); }
-.lp-footer-note { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--lp-dim); letter-spacing: .06em; }
+/* PRICING */
+.lp-plan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:600px}
+.lp-plan{background:var(--s2);border:1.5px solid var(--border2);border-radius:12px;padding:22px;display:flex;flex-direction:column}
+.lp-plan-feat{background:rgba(59,130,246,0.08);border:2px solid rgba(96,165,250,0.6);position:relative}
+.lp-pbadge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 14px;border-radius:99px;white-space:nowrap}
+.lp-ptier{font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--body);margin-bottom:10px}
+.lp-plan-feat .lp-ptier{color:rgba(147,197,253,0.7)}
+.lp-ppr{display:flex;align-items:baseline;gap:3px;margin-bottom:4px}
+.lp-pcur{font-size:14px;font-weight:700;color:var(--text)}
+.lp-pamount{font-size:28px;font-weight:800;letter-spacing:-.03em;color:var(--text);line-height:1}
+.lp-pper{font-size:12px;font-weight:600;color:var(--body);margin-left:2px}
+.lp-pdesc{font-size:12px;font-weight:500;color:var(--body);margin-bottom:10px;line-height:1.5}
+.lp-pdiv{height:1px;background:var(--border2);margin:10px 0}
+.lp-plan-feat .lp-pdiv{background:rgba(96,165,250,0.25)}
+.lp-pfeats{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:18px;flex:1}
+.lp-pfeats li{font-size:12px;font-weight:500;color:var(--body);display:flex;align-items:flex-start;gap:7px;line-height:1.4}
+.lp-ck{color:var(--green);font-weight:700;font-size:12px;flex-shrink:0}
+.lp-pcta{display:block;width:100%;font-family:var(--f);font-size:13px;font-weight:700;padding:11px;border-radius:9px;cursor:pointer;text-align:center;transition:all .15s;text-decoration:none;letter-spacing:.01em}
+.lp-pcta-out{background:transparent;border:1.5px solid var(--border2);color:var(--body)}
+.lp-pcta-out:hover{border-color:var(--sky);color:var(--text)}
+.lp-pcta-sol{background:var(--blue);border:none;color:#fff}
+.lp-pcta-sol:hover{background:#2563eb}
 
-@media (max-width: 900px) {
-  .lp-nav { padding: 0 20px; }
-  .lp-navlinks { display: none; }
-  .lp-hero { padding: 80px 20px 40px; }
-  .lp-section { padding: 64px 20px; }
-  .lp-strip { padding: 14px 20px; gap: 20px; }
-  .lp-span4, .lp-span6, .lp-span8 { grid-column: span 12; }
-  .lp-market-grid { grid-template-columns: repeat(2, 1fr); }
-  .lp-sticky-cta { padding: 16px 20px; }
-  .lp-footer { padding: 28px 20px; }
-}
-`;
+/* FOOTER */
+.lp-footer{position:relative;z-index:1;background:var(--bg);border-top:1px solid var(--border2);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.lp-footer-logo{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--text)}
+.lp-footer-logo span{color:var(--sky)}
+.lp-footer-links{display:flex;gap:20px;list-style:none}
+.lp-footer-links a{font-size:12px;font-weight:500;color:var(--body);text-decoration:none;transition:color .15s}
+.lp-footer-links a:hover{color:var(--text)}
+.lp-footer-copy{font-size:11px;color:var(--body)}
+.lp-disc{position:relative;z-index:1;background:var(--s1);border-top:1px solid var(--border2);padding:12px 24px;font-size:11px;font-weight:500;color:var(--body);text-align:center;line-height:1.6}
 
-/* ════════════════════════════════════════
-   CSS: Dashboard (已登入)
-════════════════════════════════════════ */
-const DASHBOARD_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
-
-.db-root {
-  background: #09090B; min-height: 100vh; color: #F1F0F5;
-  font-family: 'Noto Sans TC', sans-serif;
-}
-.db-nav {
-  position: sticky; top: 0; z-index: 100;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 48px; height: 64px;
-  background: rgba(9,9,11,.9); backdrop-filter: blur(12px);
-  border-bottom: 1px solid #2a2a35;
-}
-.db-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: .12em; color: #F1F0F5; }
-.db-logo span { color: #67E8F9; }
-.db-navlink { font-size: 13px; color: #8B8A99; text-decoration: none; transition: color .2s; }
-.db-navlink:hover { color: #F1F0F5; }
-.db-logout {
-  font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: .08em;
-  color: #8B8A99; background: transparent; border: 1px solid #2a2a35; padding: 7px 16px; cursor: pointer; transition: all .2s;
-}
-.db-logout:hover { border-color: #A78BFA; color: #F1F0F5; }
-.db-hero {
-  padding: 80px 48px 64px; text-align: center;
-  background: linear-gradient(180deg, rgba(124,58,237,.06) 0%, transparent 100%);
-}
-.db-eyebrow {
-  font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: .18em;
-  color: #A78BFA; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;
-}
-.db-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: #A78BFA;
-  animation: db-pulse 2s ease-in-out infinite;
-}
-@keyframes db-pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)} }
-.db-welcome {
-  font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px, 7vw, 88px);
-  letter-spacing: .04em; line-height: 1; color: #F1F0F5; margin-bottom: 12px;
-}
-.db-email { font-size: 15px; color: #8B8A99; margin-bottom: 20px; font-family: 'DM Mono', monospace; }
-.db-tier-badge {
-  display: inline-block; font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: .12em;
-  padding: 6px 20px; border: 1px solid; margin-bottom: 20px;
-}
-.db-tier-badge[data-tier="pro"] { color: #67E8F9; border-color: rgba(103,232,249,.4); background: rgba(6,182,212,.08); }
-.db-tier-badge:not([data-tier="pro"]) { color: #8B8A99; border-color: #2a2a35; }
-.db-upgrade-hint { font-size: 13px; color: #4A4960; margin-bottom: 0; }
-.db-upgrade-link { color: #A78BFA; text-decoration: none; margin-left: 8px; }
-.db-upgrade-link:hover { color: #67E8F9; }
-.db-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px; padding: 0 48px 48px; max-width: 900px; margin: 0 auto;
-}
-.db-card {
-  background: #111115; border: 1px solid #2a2a35; padding: 28px 24px;
-  text-align: center; transition: border-color .3s;
-}
-.db-card:hover { border-color: #7C3AED; }
-.db-card-num {
-  font-family: 'Bebas Neue', sans-serif; font-size: 44px; line-height: 1; margin-bottom: 8px;
-}
-.db-card-num.violet { color: #A78BFA; text-shadow: 0 0 30px rgba(167,139,250,.4); }
-.db-card-num.cyan { color: #67E8F9; text-shadow: 0 0 30px rgba(103,232,249,.4); }
-.db-card-num.white { color: #fff; }
-.db-card-num small { font-size: .5em; color: #8B8A99; }
-.db-card-label { font-size: 12px; color: #8B8A99; letter-spacing: .04em; }
-.db-actions {
-  display: flex; gap: 16px; justify-content: center; padding: 0 48px 64px; flex-wrap: wrap;
-}
-.db-btn-primary {
-  font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .08em;
-  background: linear-gradient(135deg, #7C3AED, #06B6D4); color: #fff; border: none;
-  padding: 14px 32px; cursor: pointer; text-decoration: none; transition: opacity .2s;
-}
-.db-btn-primary:hover { opacity: .85; }
-.db-btn-ghost {
-  font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .06em;
-  color: #8B8A99; border: 1px solid #2a2a35; padding: 14px 32px;
-  text-decoration: none; transition: border-color .2s, color .2s;
-}
-.db-btn-ghost:hover { border-color: #A78BFA; color: #F1F0F5; }
-.db-disclaimer {
-  margin: 0 48px 48px; background: rgba(239,68,68,.05); border: 1px solid rgba(239,68,68,.12);
-  padding: 14px 20px; font-size: 11px; color: rgba(239,68,68,.6);
-  font-family: 'DM Mono', monospace; letter-spacing: .04em;
-}
-@media (max-width: 768px) {
-  .db-nav { padding: 0 20px; }
-  .db-hero { padding: 60px 20px 40px; }
-  .db-grid { padding: 0 20px 40px; }
-  .db-actions { padding: 0 20px 40px; }
-  .db-disclaimer { margin: 0 20px 40px; }
+@media(max-width:640px){
+  .lp-navlinks{display:none}
+  .lp-hero{padding:80px 16px 40px}
+  .lp-trust{padding:10px 16px;gap:10px}
+  .lp-section{padding:48px 16px}
+  .lp-ai{padding:18px 16px}
+  .lp-footer{padding:16px}
+  .lp-stats{grid-template-columns:repeat(2,1fr)}
+  .lp-db-stats{grid-template-columns:repeat(2,1fr)}
 }
 `;
