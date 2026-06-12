@@ -154,7 +154,13 @@ export default function MatchesPage() {
         const matchRes = await fetch(`${API_URL}/matches/`, {
           headers: stored ? { Authorization: `Bearer ${stored}` } : {},
         });
-        if (matchRes.ok) setMatches(await matchRes.json());
+        if (matchRes.ok) {
+          const data = await matchRes.json();
+          data.sort((a: Match, b: Match) =>
+            new Date(a.kickoff_utc).getTime() - new Date(b.kickoff_utc).getTime()
+          );
+          setMatches(data);
+        }
       } catch (e) {
         console.error(e);
       } finally {
