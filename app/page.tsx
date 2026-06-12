@@ -304,7 +304,7 @@ export default function HomePage() {
             <a href="/matches" className="lp-btn-solid">{t.dbMatchBtn}</a>
             {tier === "pro"
               ? <a href="/matches" className="lp-btn-ghost">{t.dbProBtn}</a>
-              : <a href="#pricing" className="lp-btn-ghost">{t.dbUpgradeBtn}</a>
+              : <a href="https://bestsaler666.gumroad.com/l/fzljib" target="_blank" rel="noopener noreferrer" className="lp-btn-ghost">{t.dbUpgradeBtn}</a>
             }
           </div>
         </section>
@@ -391,7 +391,7 @@ export default function HomePage() {
             <ul className="lp-pfeats">
               {t.planProFeats.map(f => <li key={f}><span className="lp-ck">✓</span>{f}</li>)}
             </ul>
-            <a href="/register" className="lp-pcta lp-pcta-sol">{t.planProCta}</a>
+            <a href="https://bestsaler666.gumroad.com/l/fzljib" target="_blank" rel="noopener noreferrer" className="lp-pcta lp-pcta-sol">{t.planProCta}</a>
           </div>
         </div>
       </section>
