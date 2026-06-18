@@ -33,6 +33,7 @@ const TEAM_ZH: Record<string, string> = {
   "United Arab Emirates": "阿聯", "Uzbekistan": "烏茲別克",
   "Indonesia": "印尼", "Thailand": "泰國", "Vietnam": "越南",
   "Philippines": "菲律賓", "Malaysia": "馬來西亞",
+  "South Africa": "南非", "Cameroon": "喀麥隆",
 };
 
 function getTeamZh(name: string): string {
@@ -99,6 +100,9 @@ const T = {
     freeLabel: "FREE",
     navMatches: "賽事",
     upgradeBtn: "⚡ 升級 Pro — $6.99 USD",
+    aiRec: "AI 推薦",
+    win: "勝負",
+    ou: "大小球",
   },
   en: {
     loading: "Loading...", loadPred: "Analysing...", noPred: "No prediction data",
@@ -121,6 +125,9 @@ const T = {
     freeLabel: "FREE",
     navMatches: "Fixtures",
     upgradeBtn: "⚡ Upgrade Pro — $6.99 USD",
+    aiRec: "AI Recommendation",
+    win: "1X2",
+    ou: "O/U",
   },
 };
 
@@ -374,6 +381,15 @@ function MatchCard({ match, tier, lang, isExpanded, isLoading, prediction, detai
                 <span className="wc-conf-val">{Math.round(prediction.prediction.confidence * 100)}%</span>
               </div>
 
+              {/* AI 推薦區塊 — Free 和 Pro 都看得到 */}
+              <AiRecommendation
+                prediction={prediction.prediction}
+                homeTeam={match.home_team}
+                awayTeam={match.away_team}
+                lang={lang}
+                t={t}
+              />
+
               {/* Pro section */}
               {tier === "pro" ? (
                 <>
@@ -430,6 +446,79 @@ function MatchCard({ match, tier, lang, isExpanded, isLoading, prediction, detai
   );
 }
 
+function AiRecommendation({ prediction, homeTeam, awayTeam, lang, t }: {
+  prediction: Prediction;
+  homeTeam: string;
+  awayTeam: string;
+  lang: Lang;
+  t: typeof T["zh"];
+}) {
+  const home = Math.round(prediction.home_prob * 100);
+  const draw = Math.round(prediction.draw_prob * 100);
+  const away = Math.round(prediction.away_prob * 100);
+  const over = Math.round(prediction.over_prob * 100);
+  const bttsYes = Math.round(prediction.btts_yes * 100);
+  const eg = prediction.expected_goals;
+  const homeZh = getTeamZh(homeTeam);
+  const awayZh = getTeamZh(awayTeam);
+
+  // 1X2
+  let rec1x2 = "";
+  let rec1x2Reason = "";
+  if (home >= 55) {
+    rec1x2 = lang === "zh" ? `推薦主勝（${homeZh}）${home}%` : `Home Win (${homeTeam}) ${home}%`;
+    rec1x2Reason = lang === "zh" ? "主隊勝率顯著領先" : "Home team has clear advantage";
+  } else if (away >= 40) {
+    rec1x2 = lang === "zh" ? `推薦客勝（${awayZh}）${away}%` : `Away Win (${awayTeam}) ${away}%`;
+    rec1x2Reason = lang === "zh" ? "客隊有冷門實力" : "Away team shows strong chance";
+  } else {
+    rec1x2 = lang === "zh" ? `平局機率偏高 ${draw}%` : `Draw likely ${draw}%`;
+    rec1x2Reason = lang === "zh" ? "兩隊實力接近" : "Teams evenly matched";
+  }
+
+  // 大小球
+  const recOU = over >= 55
+    ? (lang === "zh" ? `推薦大球 Over · 預期 ${eg} 進球` : `Over recommended · ${eg} expected goals`)
+    : (lang === "zh" ? `推薦小球 Under · 預期 ${eg} 進球` : `Under recommended · ${eg} expected goals`);
+
+  // BTTS
+  const recBTTS = bttsYes >= 55
+    ? (lang === "zh" ? `推薦雙方進球 Yes ${bttsYes}%` : `BTTS Yes ${bttsYes}%`)
+    : (lang === "zh" ? `推薦否 No · 可能有零封` : `BTTS No · likely clean sheet`);
+
+  return (
+    <div style={{
+      background: "rgba(59,130,246,0.08)",
+      border: "1.5px solid rgba(96,165,250,0.3)",
+      borderRadius: 10,
+      padding: "14px 16px",
+      marginBottom: 14,
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#60a5fa", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+        ⚡ {t.aiRec}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <RecRow icon="🏆" label={t.win}  rec={rec1x2}  reason={rec1x2Reason} />
+        <RecRow icon="⚽" label={t.ou}   rec={recOU}   reason="" />
+        <RecRow icon="🎯" label="BTTS"   rec={recBTTS} reason="" />
+      </div>
+    </div>
+  );
+}
+
+function RecRow({ icon, label, rec, reason }: { icon: string; label: string; rec: string; reason: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+      <span style={{ fontSize: 13, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+      <div>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#93c5fd", marginRight: 6 }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#f1f5ff" }}>{rec}</span>
+        {reason && <span style={{ fontSize: 11, color: "#93c5fd", marginLeft: 6 }}>· {reason}</span>}
+      </div>
+    </div>
+  );
+}
+
 function ProbBox({ label, prob, color }: { label: string; prob?: number; color: "blue" | "dim" | "neutral" }) {
   if (prob === undefined) return null;
   const pct = Math.round(prob * 100);
@@ -471,7 +560,6 @@ const CSS = `
 
 .wc-root{background:var(--wc-bg);min-height:100vh;color:var(--wc-text);font-family:var(--f);-webkit-font-smoothing:antialiased}
 
-/* NAV */
 .wc-nav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:54px;background:rgba(6,9,18,0.97);border-bottom:1px solid var(--wc-border2);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
 .wc-logo{font-size:17px;font-weight:800;letter-spacing:-0.03em;color:var(--wc-text)}
 .wc-logo span{color:var(--wc-sky)}
@@ -486,7 +574,6 @@ const CSS = `
 .wc-nav-link{font-size:12px;font-weight:600;color:var(--wc-body);text-decoration:none;transition:.15s}
 .wc-nav-link:hover{color:var(--wc-text)}
 
-/* HEADER */
 .wc-header{padding:32px 20px 20px;position:relative;overflow:hidden}
 .wc-header::before{content:'';position:absolute;top:-80px;left:-60px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.18),transparent 70%);pointer-events:none}
 .wc-header::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 5%,rgba(96,165,250,0.4) 50%,transparent 95%)}
@@ -495,16 +582,13 @@ const CSS = `
 .wc-title{font-size:26px;font-weight:800;letter-spacing:-0.025em;color:var(--wc-text);margin-bottom:4px;position:relative;z-index:1}
 .wc-sub{font-size:13px;font-weight:500;color:var(--wc-body);position:relative;z-index:1}
 
-/* TRUST BAR */
 .wc-trust{background:var(--wc-s1);border-top:1px solid var(--wc-border2);border-bottom:1px solid var(--wc-border2);padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .wc-trust-item{font-size:11px;font-weight:600;color:var(--wc-body)}
 .wc-trust-div{width:1px;height:14px;background:var(--wc-border2)}
 
-/* LIST */
 .wc-list{padding:16px 16px 0}
 .wc-empty{text-align:center;padding:48px;color:var(--wc-body);font-size:14px}
 
-/* CARD */
 .wc-card{background:var(--wc-s1);border:1.5px solid var(--wc-border);border-radius:12px;margin-bottom:10px;overflow:hidden;transition:border-color .2s}
 .wc-card:hover{border-color:var(--wc-border2)}
 .wc-card.expanded{border-color:rgba(96,165,250,0.5)}
@@ -514,7 +598,6 @@ const CSS = `
 .wc-stage-tag{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 9px;border-radius:4px;background:rgba(59,130,246,0.12);border:1px solid rgba(147,197,253,0.25);color:var(--wc-dim)}
 .wc-time{font-size:11px;font-weight:600;color:var(--wc-body)}
 
-/* TEAMS */
 .wc-teams{display:flex;align-items:center;gap:10px}
 .wc-team{display:flex;align-items:baseline;gap:5px}
 .wc-team-zh{font-size:15px;font-weight:700;color:var(--wc-text)}
@@ -525,14 +608,12 @@ const CSS = `
 .wc-toggle-btn{font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;border:1.5px solid var(--wc-border2);color:var(--wc-body);background:transparent;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0}
 .wc-toggle-btn:hover{border-color:var(--wc-sky);color:var(--wc-text)}
 
-/* EXPAND */
 .wc-expand{padding:16px;border-top:1px solid var(--wc-border2);background:rgba(6,9,18,0.6)}
 .wc-loading-txt{font-size:13px;color:var(--wc-body);text-align:center;padding:16px}
 .wc-warn{font-size:12px;color:var(--wc-amber);background:var(--wc-amber-dim);border:1px solid var(--wc-amber-bdr);border-radius:7px;padding:8px 12px;margin-bottom:12px}
 .wc-elo-row{display:flex;gap:16px;font-size:12px;font-weight:500;color:var(--wc-body);margin-bottom:14px;flex-wrap:wrap}
 .wc-elo-row strong{color:var(--wc-text)}
 
-/* PROB */
 .wc-prob-section{margin-bottom:14px}
 .wc-prob-label{font-size:11px;font-weight:700;color:var(--wc-body);margin-bottom:8px;letter-spacing:.03em}
 .wc-prob-row{display:flex;gap:8px}
@@ -544,14 +625,12 @@ const CSS = `
 .wc-prob-box.blue .wc-prob-pct{color:var(--wc-sky)}
 .wc-prob-lbl{font-size:10px;font-weight:600;color:var(--wc-body)}
 
-/* CONFIDENCE */
 .wc-conf{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .wc-conf-label{font-size:11px;font-weight:700;color:var(--wc-body);white-space:nowrap}
 .wc-conf-bg{flex:1;height:4px;background:var(--wc-s3);border-radius:2px;overflow:hidden}
 .wc-conf-fill{height:100%;border-radius:2px;background:var(--wc-blue);transition:width .6s ease}
 .wc-conf-val{font-size:11px;font-weight:700;color:var(--wc-sky);min-width:30px;text-align:right}
 
-/* LOCK */
 .wc-lock{background:var(--wc-amber-dim);border:1.5px solid var(--wc-amber-bdr);border-radius:10px;padding:14px;margin-bottom:12px}
 .wc-lock-content{display:flex;align-items:flex-start;gap:10px}
 .wc-lock-icon{font-size:18px;flex-shrink:0;margin-top:2px}
@@ -563,7 +642,6 @@ const CSS = `
 
 .wc-disclaimer{font-size:11px;font-weight:500;color:var(--wc-body);margin-top:12px;padding-top:12px;border-top:1px solid var(--wc-border2)}
 
-/* FOOTER */
 .wc-footer{text-align:center;padding:24px 20px;font-size:11px;font-weight:500;color:var(--wc-body);border-top:1px solid var(--wc-border2);margin-top:8px}
 
 @media(max-width:600px){
